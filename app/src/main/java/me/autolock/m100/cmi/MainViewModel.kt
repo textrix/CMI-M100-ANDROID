@@ -3,11 +3,12 @@ package me.autolock.m100.cmi
 import androidx.lifecycle.*
 
 class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
+    val statusText = MutableLiveData<String>()
     val logText = MutableLiveData<String>()
-    var line = 1
+    val logLine = MutableLiveData<String>()
 
     fun scanButtonOnClick() {
-        logText.value = "${line}: start scan\n"
-        line++
+        logLine.value = "start scan"
+        statusText.value = "Star scanning..."
     }
 }

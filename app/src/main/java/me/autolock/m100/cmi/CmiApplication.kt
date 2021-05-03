@@ -9,7 +9,7 @@ import org.koin.core.context.startKoin
 
 class CmiApplication  : Application() {
 
-    init{
+    init {
         instance = this
     }
 
@@ -34,7 +34,5 @@ class CmiApplication  : Application() {
             //module list
             modules(listOf(repositoryModule, viewModelModule))
         }
-
     }
-
 }

@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.databinding.DataBindingUtil
 import me.autolock.m100.cmi.databinding.ActivityMainBinding
+import org.koin.android.ext.android.bind
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 // used to identify adding bluetooth names
@@ -25,6 +26,7 @@ val PERMISSIONS = arrayOf(
 
 class MainActivity : AppCompatActivity() {
     private val viewModel by viewModel<MainViewModel>()
+    private val line_ = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,14 +46,28 @@ class MainActivity : AppCompatActivity() {
         initObserver(binding)
     }
 
-    private fun initObserver(binding: ActivityMainBinding) {
-        viewModel.logText.observe(this, {
-            binding.logText.append(it)
-            if ((binding.logText.measuredHeight - binding.logScroll.scrollY) <= (binding.logScroll.height + binding.logText.lineHeight)) {
-                binding.logText.post {
-                    binding.logScroll.smoothScrollTo(0, binding.logText.bottom)
-                }
+    private fun outputLogText(binding: ActivityMainBinding, it: String) {
+        binding.logText.append(it)
+        if ((binding.logText.measuredHeight - binding.logScroll.scrollY) <= (binding.logScroll.height + binding.logText.lineHeight)) {
+            binding.logText.post {
+                binding.logScroll.smoothScrollTo(0, binding.logText.bottom)
             }
+        }
+    }
+
+    private fun initObserver(binding: ActivityMainBinding) {
+        // When the logText value of the view model is changed, it is displayed in the log textview.
+        viewModel.logText.observe(this, {
+            outputLogText(binding, it)
+        })
+        // When the logLine value of the view model is changed, a number is added to the log textview and printed, and the next line is moved.
+        viewModel.logLine.observe(this, {
+            val str = "${line_}: " + it + "\n"
+            outputLogText(binding, str)
+        })
+        // When the statusText value of the view model is changed, it is displayed in the status textview.
+        viewModel.statusText.observe(this, {
+            binding.statusText.text = it
         })
     }
 
