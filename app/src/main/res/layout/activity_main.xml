@@ -38,7 +38,8 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:onClick="@{()->viewModel.scanButtonOnClick()}"
-                android:text="Scan" />
+                android:enabled="@{viewModel.scanning ? false : true}"
+                android:text="@{viewModel.scanning ? `Scanning...` : `Scan`}" />
 
             <Button
                 android:id="@+id/disconnectButton"

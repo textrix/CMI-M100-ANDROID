@@ -7,6 +7,7 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.ParcelUuid
+import androidx.lifecycle.MutableLiveData
 import java.util.*
 import kotlin.concurrent.schedule
 
@@ -20,7 +21,11 @@ class BleRepository {
     // ble Gatt
     private var bleGatt: BluetoothGatt? = null
 
+   // val scanning = MutableLiveData(Event(false))
+    val scanning = MutableLiveData<Boolean>(false)
+
     fun startScan() {
+
         /*
         // check ble adapter and ble enabled
         if (bleAdapter == null || !bleAdapter?.isEnabled!!) {
@@ -51,6 +56,13 @@ class BleRepository {
         Timer("SettingUp", false).schedule(3000) { stopScan() }
 
          */
+
+        scanning.postValue(true)
+        Timer("SettingUp", false).schedule(3000) { stopScan() }
+    }
+
+    private fun stopScan() {
+        scanning.postValue(false)
     }
 
 

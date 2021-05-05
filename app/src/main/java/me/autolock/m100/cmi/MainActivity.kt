@@ -13,7 +13,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.databinding.DataBindingUtil
 import me.autolock.m100.cmi.databinding.ActivityMainBinding
-import org.koin.android.ext.android.bind
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 // used to identify adding bluetooth names
@@ -26,7 +25,7 @@ val PERMISSIONS = arrayOf(
 
 class MainActivity : AppCompatActivity() {
     private val viewModel by viewModel<MainViewModel>()
-    private val line_ = 0
+    private var logLine = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,12 +61,20 @@ class MainActivity : AppCompatActivity() {
         })
         // When the logLine value of the view model is changed, a number is added to the log textview and printed, and the next line is moved.
         viewModel.logLine.observe(this, {
-            val str = "${line_}: " + it + "\n"
+            val str = "${logLine}: " + it + "\n"
             outputLogText(binding, str)
+            logLine++
         })
         // When the statusText value of the view model is changed, it is displayed in the status textview.
         viewModel.statusText.observe(this, {
             binding.statusText.text = it
+        })
+        // When the value of bleRepository.scanning is set, viewModel.scanning is set
+        viewModel.scanningBridge.observe(this, {
+            viewModel.scanning.set(it)
+            /*it.getContentIfNotHandled()?.let { scanning ->
+                viewModel.scanning.set(scanning)
+            }*/
         })
     }
 
