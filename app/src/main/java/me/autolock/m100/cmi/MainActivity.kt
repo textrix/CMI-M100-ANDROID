@@ -54,6 +54,7 @@ class MainActivity : AppCompatActivity() {
                     outputLogText(binding, str)
                     logLine++
                 }
+                2 -> requestEnableBLE()
             }
             true
         }
