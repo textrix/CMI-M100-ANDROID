@@ -1,15 +1,17 @@
 package me.autolock.m100.cmi
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothManager
-import android.bluetooth.le.ScanFilter
-import android.bluetooth.le.ScanSettings
 import android.content.Context
-import android.os.ParcelUuid
 import androidx.lifecycle.MutableLiveData
 import java.util.*
 import kotlin.concurrent.schedule
+
+fun outputLogLine(str: String) {
+    handler?.obtainMessage(1, str)?.sendToTarget()
+}
 
 class BleRepository {
     // ble manager
@@ -57,13 +59,14 @@ class BleRepository {
 
          */
 
+        outputLogLine("Scanning started...")
         scanning.postValue(true)
         Timer("SettingUp", false).schedule(3000) { stopScan() }
     }
 
     private fun stopScan() {
+        outputLogLine("Scanning stopped...")
         scanning.postValue(false)
     }
-
 
 }

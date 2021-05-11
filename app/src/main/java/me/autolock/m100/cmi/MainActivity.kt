@@ -8,6 +8,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
@@ -22,6 +24,8 @@ const val REQUEST_ALL_PERMISSION = 2
 val PERMISSIONS = arrayOf(
     Manifest.permission.ACCESS_FINE_LOCATION
 )
+
+var handler: Handler? = null
 
 class MainActivity : AppCompatActivity() {
     private val viewModel by viewModel<MainViewModel>()
@@ -42,6 +46,18 @@ class MainActivity : AppCompatActivity() {
             requestPermissions(PERMISSIONS, REQUEST_ALL_PERMISSION)
         }
 
+        handler = Handler(Looper.getMainLooper()) {
+            when (it.what) {
+                0 -> outputLogText(binding, it.obj as String)
+                1 -> {
+                    val str = "${logLine}: " + it.obj + "\n"
+                    outputLogText(binding, str)
+                    logLine++
+                }
+            }
+            true
+        }
+
         initObserver(binding)
     }
 
@@ -55,16 +71,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initObserver(binding: ActivityMainBinding) {
-        // When the logText value of the view model is changed, it is displayed in the log textview.
-        viewModel.logText.observe(this, {
-            outputLogText(binding, it)
-        })
-        // When the logLine value of the view model is changed, a number is added to the log textview and printed, and the next line is moved.
-        viewModel.logLine.observe(this, {
-            val str = "${logLine}: " + it + "\n"
-            outputLogText(binding, str)
-            logLine++
-        })
         // When the statusText value of the view model is changed, it is displayed in the status textview.
         viewModel.statusText.observe(this, {
             binding.statusText.text = it
