@@ -49,6 +49,17 @@
                 android:text="Disconnect" />
         </LinearLayout>
 
+        <ScrollView
+
+            android:layout_width="match_parent"
+            android:layout_height="150dp">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/ble_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </ScrollView>
+
         <TextView
             android:id="@+id/textView2"
             android:layout_width="match_parent"

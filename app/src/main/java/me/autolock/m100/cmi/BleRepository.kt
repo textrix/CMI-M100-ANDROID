@@ -19,14 +19,6 @@ import kotlin.concurrent.schedule
 
 const val SERVICE_STRING = "434D492D-4D31-3030-0101-627567696969"
 
-fun outputLogLine(str: String) {
-    handler?.obtainMessage(1, str)?.sendToTarget()
-}
-
-fun requestEnableBLE() {
-    handler?.obtainMessage(2)?.sendToTarget()
-}
-
 class BleRepository {
     // ble manager
     val bleManager: BluetoothManager =
@@ -39,6 +31,8 @@ class BleRepository {
 
     //val scanning = MutableLiveData(Event(false))
     val scanning = MutableLiveData<Boolean>(false)
+    //val listUpdate = MutableLiveData<Event<ArrayList<BluetoothDevice>?>>()
+    val listUpdate = MutableLiveData<ArrayList<BluetoothDevice>?>()
 
     // scan results
     var scanResults: ArrayList<BluetoothDevice>? = ArrayList()
@@ -54,49 +48,19 @@ class BleRepository {
 
         //scan filter
         val filters: MutableList<ScanFilter> = ArrayList()
-        val scanFilter: ScanFilter = ScanFilter.Builder()
+        /*val scanFilter: ScanFilter = ScanFilter.Builder()
             .setServiceUuid(ParcelUuid(UUID.fromString(SERVICE_STRING)))
             .build()
-        //filters.add(scanFilter)
+        filters.add(scanFilter)*/
+
         // scan settings
         // set low power scan mode
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
             .build()
+
         // start scan
         bleAdapter?.bluetoothLeScanner?.startScan(filters, settings, BLEScanCallback)
-        //bleAdapter?.bluetoothLeScanner?.startScan(BLEScanCallback)
-
-        /*
-        // check ble adapter and ble enabled
-        if (bleAdapter == null || !bleAdapter?.isEnabled!!) {
-            requestEnableBLE.postValue(Event(true))
-            statusTxt ="Scanning Failed: ble not enabled"
-            isStatusChange = true
-            return
-        }
-        //scan filter
-        val filters: MutableList<ScanFilter> = ArrayList()
-        val scanFilter: ScanFilter = ScanFilter.Builder()
-            .setServiceUuid(ParcelUuid(UUID.fromString(SERVICE_STRING)))
-            .build()
-        filters.add(scanFilter)
-        // scan settings
-        // set low power scan mode
-        val settings = ScanSettings.Builder()
-            .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
-            .build()
-        // start scan
-        bleAdapter?.bluetoothLeScanner?.startScan(filters, settings, BLEScanCallback)
-        //bleAdapter?.bluetoothLeScanner?.startScan(BLEScanCallback)
-
-        statusTxt = "Scanning...."
-        isStatusChange = true
-        isScanning.postValue(Event(true))
-
-        Timer("SettingUp", false).schedule(3000) { stopScan() }
-
-         */
 
         outputLogLine("Scanning started...")
         scanning.postValue(true)
@@ -147,10 +111,11 @@ class BleRepository {
             for (dev in scanResults!!) {
                 if (dev.address == deviceAddress) return
             }
+
             scanResults?.add(result.device)
-            // log
-            outputLogLine("add scanned device: $deviceAddress")
+            outputLogLine("add scanned device: $deviceName $deviceAddress")
             //listUpdate.postValue(Event(scanResults))
+            listUpdate.postValue(scanResults)
         }
     }
 

@@ -2,10 +2,12 @@ package me.autolock.m100.cmi
 
 import android.app.Application
 import android.content.Context
+import androidx.annotation.experimental.Experimental
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidFileProperties
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
+import org.koin.core.logger.Level
 
 class CmiApplication  : Application() {
 
@@ -26,7 +28,7 @@ class CmiApplication  : Application() {
         startKoin {
             // 로그를 찍어볼 수 있다.
             // 에러확인 - androidLogger(Level.ERROR)
-            androidLogger()
+            androidLogger(Level.ERROR)
             // Android Content를 넘겨준다.
             androidContext(this@CmiApplication)
             // assets/koin.properties 파일에서 프로퍼티를 가져옴

@@ -3,6 +3,7 @@ package me.autolock.m100.cmi
 import android.Manifest
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -10,11 +11,15 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.databinding.DataBindingUtil
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import me.autolock.m100.cmi.databinding.ActivityMainBinding
+import org.koin.android.ext.android.bind
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 // used to identify adding bluetooth names
@@ -27,9 +32,18 @@ val PERMISSIONS = arrayOf(
 
 var handler: Handler? = null
 
+fun outputLogLine(str: String) {
+    handler?.obtainMessage(1, str)?.sendToTarget()
+}
+
+fun requestEnableBLE() {
+    handler?.obtainMessage(2)?.sendToTarget()
+}
+
 class MainActivity : AppCompatActivity() {
     private val viewModel by viewModel<MainViewModel>()
     private var logLine = 0
+    private var adapter: BleListAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,6 +73,21 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
+        binding.bleList.setHasFixedSize(true)
+        val layoutManager: RecyclerView.LayoutManager = LinearLayoutManager(this)
+        binding.bleList.layoutManager = layoutManager
+
+
+        adapter = BleListAdapter()
+        binding.bleList.adapter = adapter
+        adapter?.setItemClickListener(object : BleListAdapter.ItemClickListener {
+            override fun onClick(view: View, device: BluetoothDevice?) {
+                if (device != null) {
+                    //viewModel.connectDevice(device)
+                }
+            }
+        })
+
         initObserver(binding)
     }
 
@@ -83,6 +112,13 @@ class MainActivity : AppCompatActivity() {
                 viewModel.scanning.set(scanning)
             }*/
         })
+        viewModel.listUpdate.observe(this, {
+            adapter?.setItem(it)
+            /*it.getContentIfNotHandled()?.let { scanResults ->
+                adapter?.setItem(scanResults)
+            }*/
+        })
+
     }
 
     override fun onResume() {
