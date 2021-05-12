@@ -83,7 +83,7 @@ class MainActivity : AppCompatActivity() {
         adapter?.setItemClickListener(object : BleListAdapter.ItemClickListener {
             override fun onClick(view: View, device: BluetoothDevice?) {
                 if (device != null) {
-                    //viewModel.connectDevice(device)
+                    viewModel.connectDevice(device)
                 }
             }
         })
@@ -111,6 +111,9 @@ class MainActivity : AppCompatActivity() {
             /*it.getContentIfNotHandled()?.let { scanning ->
                 viewModel.scanning.set(scanning)
             }*/
+        })
+        viewModel.connectedBridge.observe(this,{
+            viewModel.connected.set(it)
         })
         viewModel.listUpdate.observe(this, {
             adapter?.setItem(it)

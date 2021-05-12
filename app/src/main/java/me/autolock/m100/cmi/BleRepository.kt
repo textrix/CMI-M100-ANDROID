@@ -1,20 +1,16 @@
 package me.autolock.m100.cmi
 
-import android.annotation.SuppressLint
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothManager
+import android.bluetooth.*
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.Build
-import android.os.ParcelUuid
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.MutableLiveData
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.concurrent.schedule
 
 const val SERVICE_STRING = "434D492D-4D31-3030-0101-627567696969"
@@ -31,6 +27,7 @@ class BleRepository {
 
     //val scanning = MutableLiveData(Event(false))
     val scanning = MutableLiveData<Boolean>(false)
+    val connected = MutableLiveData(false)
     //val listUpdate = MutableLiveData<Event<ArrayList<BluetoothDevice>?>>()
     val listUpdate = MutableLiveData<ArrayList<BluetoothDevice>?>()
 
@@ -71,7 +68,7 @@ class BleRepository {
         outputLogLine("Scanning stopped...")
         scanning.postValue(false)
         bleAdapter?.bluetoothLeScanner?.stopScan(BLEScanCallback)
-        scanResults?.clear()
+        scanResults = ArrayList()
     }
 
     /**
@@ -119,5 +116,86 @@ class BleRepository {
         }
     }
 
+    /**
+     * BLE gattClientCallback
+     */
+    private val gattClientCallback: BluetoothGattCallback = object : BluetoothGattCallback() {
+        override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+            super.onConnectionStateChange(gatt, status, newState)
+            if (status == BluetoothGatt.GATT_FAILURE) {
+                disconnectGattServer()
+                return
+            } else if (status != BluetoothGatt.GATT_SUCCESS) {
+                disconnectGattServer()
+                return
+            }
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                // update the connection status message
+                outputLogLine("Connected to the GATT server")
+                gatt.discoverServices()
+            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                disconnectGattServer()
+            }
+        }
+
+        override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
+            super.onServicesDiscovered(gatt, status)
+
+            // check if the discovery failed
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                outputLogLine("Device service discovery failed, status: $status")
+                return
+            }
+
+            // log for successful discovery
+            outputLogLine("Services discovery is successful")
+            connected.postValue(true)
+            /*
+            // find command characteristics from the GATT server
+            val respCharacteristic = gatt?.let { BluetoothUtils.findResponseCharacteristic(it) }
+            // disconnect if the characteristic is not found
+            if (respCharacteristic == null) {
+                outputLogLine("Unable to find cmd characteristic")
+                disconnectGattServer()
+                return
+            }
+            */
+
+            //gatt.setCharacteristicNotification(respCharacteristic, true)
+
+            /*
+            // UUID for notification
+            val descriptor: BluetoothGattDescriptor = respCharacteristic.getDescriptor(
+                UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG)
+            )
+            descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+            gatt.writeDescriptor(descriptor)
+
+             */
+        }
+    }
+
+    /**
+     * Connect to the ble device
+     */
+    fun connectDevice(device: BluetoothDevice?) {
+        // update the status
+        outputLogLine("Connecting to ${device?.address}")
+        bleGatt = device?.connectGatt(CmiApplication.applicationContext(), false, gattClientCallback)
+    }
+
+        /**
+     * Disconnect Gatt Server
+     */
+    fun disconnectGattServer() {
+        outputLogLine("Closing Gatt connection")
+        // disconnect and close the gatt
+        if (bleGatt != null) {
+            bleGatt!!.disconnect()
+            bleGatt!!.close()
+            outputLogLine("Disconnected")
+            connected.postValue(false)
+        }
+    }
 
 }

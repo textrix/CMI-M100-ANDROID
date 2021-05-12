@@ -9,19 +9,16 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
-class BleListAdapter : RecyclerView.Adapter<BleListAdapter.BleViewHolder>(){
-
+class BleListAdapter : RecyclerView.Adapter<BleListAdapter.BleViewHolder>() {
     lateinit var mContext: Context
     private var items: ArrayList<BluetoothDevice>? = ArrayList()
     private lateinit var itemClickListner: ItemClickListener
-    lateinit var itemView:View
-
+    lateinit var itemView: View
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BleViewHolder {
         mContext = parent.context
         itemView = LayoutInflater.from(mContext).inflate(R.layout.ble_list_item, parent, false)
         return BleViewHolder(itemView)
-
     }
 
     @SuppressLint("SetTextI18n")
@@ -37,7 +34,9 @@ class BleListAdapter : RecyclerView.Adapter<BleListAdapter.BleViewHolder>(){
     }
     fun setItem(item: ArrayList<BluetoothDevice>?){
 
-        if(item==null) return
+        if (item == null) {
+            return
+        }
         items = item
         notifyDataSetChanged()
     }

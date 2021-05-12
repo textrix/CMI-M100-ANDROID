@@ -12,6 +12,10 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
         get() = bleRepository.scanning
     // When viewModel.scanning is changed, it can be detected in the layout.
     val scanning = ObservableBoolean(false)
+    val connectedBridge: LiveData<Boolean>
+        get() = bleRepository.connected
+    var connected = ObservableBoolean(false)
+
 
     //val listUpdate : LiveData<Event<ArrayList<BluetoothDevice>?>>
     val listUpdate : LiveData<ArrayList<BluetoothDevice>?>
@@ -21,6 +25,12 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
         bleRepository.startScan()
     }
 
-    fun stopScan() {
+    fun disconnectButtonOnClick(){
+        bleRepository.disconnectGattServer()
     }
+
+    fun connectDevice(bluetoothDevice: BluetoothDevice) {
+        bleRepository.connectDevice(bluetoothDevice)
+    }
+
 }
