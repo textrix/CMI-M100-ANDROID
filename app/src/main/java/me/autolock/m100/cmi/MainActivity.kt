@@ -122,7 +122,7 @@ class MainActivity : AppCompatActivity() {
             }*/
         })
         viewModel.reportArray.observe(this, {
-            val str = it.toHexString() + " (%d)".format(it[2] + it[3] * 256)
+            val str = it.toHexString() + " (%d)".format(it[2].toPositiveInt() + it[3].toPositiveInt() * 256)
             binding.reportText.text = str
         })
     }
