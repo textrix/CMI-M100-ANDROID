@@ -138,15 +138,17 @@ class BleUtil {
          * @param uuidString uuid as string to match
          * @return true if matched
          */
-        private fun matchCharacteristic(
-            characteristic: BluetoothGattCharacteristic?,
-            uuidString: String
-        ): Boolean {
+        private fun matchCharacteristic(characteristic: BluetoothGattCharacteristic?, uuidString: String): Boolean {
             if (characteristic == null) {
                 return false
             }
             val uuid: UUID = characteristic.uuid
             return matchUUIDs(uuid.toString(), uuidString)
+        }
+
+        fun matchReportCharacteristic(characteristic: BluetoothGattCharacteristic): Boolean {
+            val uuid: UUID = characteristic.uuid
+            return matchUUIDs(uuid.toString(), CHARACTERISTIC_RP_STRING)
         }
     }
 }

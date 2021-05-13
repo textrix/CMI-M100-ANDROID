@@ -35,6 +35,9 @@ class BleRepository {
     // scan results
     var scanResults: ArrayList<BluetoothDevice>? = ArrayList()
 
+    //
+    val reportArray = MutableLiveData<ByteArray>()
+
     fun startScan() {
 
         // check ble adapter and ble enabled
@@ -217,8 +220,15 @@ class BleRepository {
          * @param characteristic
          */
         private fun readCharacteristic(characteristic: BluetoothGattCharacteristic) {
-            val msg = characteristic.getStringValue(0)
-            outputLogLine("read: $msg")
+            if (BleUtil.matchReportCharacteristic(characteristic)) {
+                val bytes = characteristic.value
+                outputLogLine(bytes.toHexString())
+                reportArray.postValue(bytes)
+            }
+            else {
+                val msg = characteristic.getStringValue(0)
+                outputLogLine("read: $msg")
+            }
         }
     }
 
@@ -259,6 +269,21 @@ class BleRepository {
         // check the result
         if( !success ) {
             outputLogLine("Failed to write command")
+        }
+    }
+
+    fun readData() {
+        val reportCharacteristic = BleUtil.findReportCharacteristic(bleGatt!!)
+        // disconnect if the characteristic is not found
+        if (reportCharacteristic == null) {
+            outputLogLine("Unable to find report characteristic")
+            disconnectGattServer()
+            return
+        }
+
+        val success: Boolean = bleGatt!!.readCharacteristic(reportCharacteristic)
+        if (!success) {
+            outputLogLine("Failed to read command")
         }
     }
 }

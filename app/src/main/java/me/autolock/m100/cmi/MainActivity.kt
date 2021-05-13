@@ -121,7 +121,10 @@ class MainActivity : AppCompatActivity() {
                 adapter?.setItem(scanResults)
             }*/
         })
-
+        viewModel.reportArray.observe(this, {
+            val str = it.toHexString() + " (%d)".format(it[2] + it[3] * 256)
+            binding.reportText.text = str
+        })
     }
 
     override fun onResume() {

@@ -17,6 +17,8 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
         get() = bleRepository.connected
     var connected = ObservableBoolean(false)
 
+    val reportArray: LiveData<ByteArray>
+        get() = bleRepository.reportArray
 
     //val listUpdate : LiveData<Event<ArrayList<BluetoothDevice>?>>
     val listUpdate : LiveData<ArrayList<BluetoothDevice>?>
@@ -44,5 +46,8 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
         bleRepository.writeData(text.toByteArray(Charset.defaultCharset()))
     }
 
+    fun readButtonOnClick() {
+        bleRepository.readData()
+    }
 
 }
