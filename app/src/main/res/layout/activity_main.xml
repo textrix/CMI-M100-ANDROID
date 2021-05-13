@@ -63,6 +63,154 @@
         </ScrollView>
 
         <TextView
+            android:id="@+id/textView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="▼ Relay ON/OFF"
+            android:textColor="@color/black" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_off_0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_off(0)}"
+                android:text="F0" />
+
+            <Button
+                android:id="@+id/btn_off_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_off(1)}"
+                android:text="F1" />
+
+            <Button
+                android:id="@+id/btn_off_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_off(2)}"
+                android:text="F2" />
+
+            <Button
+                android:id="@+id/btn_off_3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_off(3)}"
+                android:text="F3" />
+
+            <Button
+                android:id="@+id/btn_off_4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_off(4)}"
+                android:text="F4" />
+
+            <Button
+                android:id="@+id/btn_off_5"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_off(4)}"
+                android:text="F5" />
+
+            <Button
+                android:id="@+id/btn_off_6"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_off(6)}"
+                android:text="F6" />
+
+            <Button
+                android:id="@+id/btn_off_7"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_off(7)}"
+                android:text="F7" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_on_0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_on(0)}"
+                android:text="O0" />
+
+            <Button
+                android:id="@+id/btn_on_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_on(1)}"
+                android:text="O1" />
+
+            <Button
+                android:id="@+id/btn_on_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_on(2)}"
+                android:text="O2" />
+
+            <Button
+                android:id="@+id/btn_on_3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_on(3)}"
+                android:text="O3" />
+
+            <Button
+                android:id="@+id/btn_on_4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_on(4)}"
+                android:text="O4" />
+
+            <Button
+                android:id="@+id/btn_on_5"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_on(5)}"
+                android:text="O5" />
+
+            <Button
+                android:id="@+id/btn_on_6"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_on(6)}"
+                android:text="O6" />
+
+            <Button
+                android:id="@+id/btn_on_7"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="@{()->viewModel.relay_on(7)}"
+                android:text="O7" />
+        </LinearLayout>
+
+        <TextView
             android:id="@+id/textView2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

@@ -3,6 +3,7 @@ package me.autolock.m100.cmi
 import android.bluetooth.BluetoothDevice
 import androidx.databinding.ObservableBoolean
 import androidx.lifecycle.*
+import java.nio.charset.Charset
 
 class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
     val statusText = MutableLiveData<String>()
@@ -32,5 +33,16 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
     fun connectDevice(bluetoothDevice: BluetoothDevice) {
         bleRepository.connectDevice(bluetoothDevice)
     }
+
+    fun relay_on(num: Int) {
+        var text = "O$num"
+        bleRepository.writeData(text.toByteArray(Charset.defaultCharset()))
+    }
+
+    fun relay_off(num: Int) {
+        var text = "F$num"
+        bleRepository.writeData(text.toByteArray(Charset.defaultCharset()))
+    }
+
 
 }
