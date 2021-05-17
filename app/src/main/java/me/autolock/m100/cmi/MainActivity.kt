@@ -125,6 +125,9 @@ class MainActivity : AppCompatActivity() {
             val str = it.toHexString() + " (%d)".format(it[2].toPositiveInt() + it[3].toPositiveInt() * 256)
             binding.reportText.text = str
         })
+        viewModel.version.observe(this, {
+            binding.versionText.text = it
+        })
     }
 
     override fun onResume() {

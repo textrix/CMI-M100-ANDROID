@@ -4,6 +4,9 @@ import android.bluetooth.BluetoothDevice
 import androidx.databinding.ObservableBoolean
 import androidx.lifecycle.*
 import java.nio.charset.Charset
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.concurrent.schedule
 
 class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
     val statusText = MutableLiveData<String>()
@@ -24,6 +27,9 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
     val listUpdate : LiveData<ArrayList<BluetoothDevice>?>
         get() = bleRepository.listUpdate
 
+    val version: LiveData<String>
+        get() = bleRepository.version
+
     fun scanButtonOnClick() {
         bleRepository.startScan()
     }
@@ -36,18 +42,25 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
         bleRepository.connectDevice(bluetoothDevice)
     }
 
-    fun relay_on(num: Int) {
+    fun relayOnButtonOnClick(num: Int) {
         var text = "O$num"
         bleRepository.writeData(text.toByteArray(Charset.defaultCharset()))
     }
 
-    fun relay_off(num: Int) {
+    fun relayOffButtonOnClick(num: Int) {
         var text = "F$num"
         bleRepository.writeData(text.toByteArray(Charset.defaultCharset()))
     }
 
     fun readButtonOnClick() {
-        bleRepository.readData()
+        Timer("read", false).schedule(0, 500) {
+            if (connected.get()) {
+                bleRepository.read(CHARACTERISTIC_REPORT_STRING)
+            }
+        }
     }
 
+    fun versionButtonOnClick() {
+        bleRepository.read(CHARACTERISTIC_VERSiON_STRING)
+    }
 }

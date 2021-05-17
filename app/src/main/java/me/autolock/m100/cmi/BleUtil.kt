@@ -6,12 +6,17 @@ import android.bluetooth.BluetoothGattService
 import java.util.*
 
 
-const val CHARACTERISTIC_RP_STRING = "434D492D-4D31-3030-0102-627567696969"
+const val CHARACTERISTIC_REPORT_STRING = "434D492D-4D31-3030-0102-627567696969"
 const val CHARACTERISTIC_RX_STRING = "434D492D-4D31-3030-0103-627567696969"
+const val CHARACTERISTIC_VERSiON_STRING = "434D492D-464F-5441-0102-627567696969"
 
 
 class BleUtil {
     companion object {
+        //fun findCharacteristic(bleGatt: BluetoothGatt?, uuidString: String): BluetoothGattCharacteristic? {
+
+        //}
+
         /**
          * Find characteristics of BLE
          * @param gatt gatt instance
@@ -36,7 +41,7 @@ class BleUtil {
          * @return found characteristic
          */
         fun findReportCharacteristic(gatt: BluetoothGatt): BluetoothGattCharacteristic? {
-            return findCharacteristic(gatt, CHARACTERISTIC_RP_STRING)
+            return findCharacteristic(gatt, CHARACTERISTIC_REPORT_STRING)
         }
 
         /**
@@ -48,13 +53,17 @@ class BleUtil {
             return findCharacteristic(gatt, CHARACTERISTIC_RX_STRING)
         }
 
+        fun findVersionCharacteristic(gatt: BluetoothGatt): BluetoothGattCharacteristic? {
+            return findCharacteristic(gatt, CHARACTERISTIC_VERSiON_STRING)
+        }
+
         /**
          * Try to match the given uuid with the service uuid
          * @param serviceUuidString service UUID as string
          * @return true if service uuid is matched
          */
         private fun matchServiceUUIDString(serviceUuidString: String): Boolean {
-            return matchUUIDs(serviceUuidString, SERVICE_STRING)
+            return matchUUIDs(serviceUuidString, SERVICE_STRING) or matchUUIDs(serviceUuidString, SERVICE_OTA_STRING)
         }
 
         /**
@@ -65,8 +74,9 @@ class BleUtil {
         private fun matchCharacteristicUUID(characteristicUuidString: String): Boolean {
             return matchUUIDs(
                 characteristicUuidString,
-                CHARACTERISTIC_RP_STRING,
-                CHARACTERISTIC_RX_STRING
+                CHARACTERISTIC_REPORT_STRING,
+                CHARACTERISTIC_RX_STRING,
+                CHARACTERISTIC_VERSiON_STRING
             )
         }
 
@@ -105,16 +115,14 @@ class BleUtil {
          * @param gatt gatt instance
          * @param uuidString uuid to query as string
          */
-        private fun findCharacteristic(
-            gatt: BluetoothGatt,
-            uuidString: String
-        ): BluetoothGattCharacteristic? {
+        fun findCharacteristic(gatt: BluetoothGatt, uuidString: String): BluetoothGattCharacteristic? {
             val serviceList = gatt.services
-            val service = findGattService(serviceList) ?: return null
-            val characteristicList = service.characteristics
-            for (characteristic in characteristicList) {
-                if (matchCharacteristic(characteristic, uuidString)) {
-                    return characteristic
+            for (service in serviceList) {
+                val characteristicList = service.characteristics
+                for (characteristic in characteristicList) {
+                    if (matchCharacteristic(characteristic, uuidString)) {
+                        return characteristic
+                    }
                 }
             }
             return null
@@ -144,11 +152,6 @@ class BleUtil {
             }
             val uuid: UUID = characteristic.uuid
             return matchUUIDs(uuid.toString(), uuidString)
-        }
-
-        fun matchReportCharacteristic(characteristic: BluetoothGattCharacteristic): Boolean {
-            val uuid: UUID = characteristic.uuid
-            return matchUUIDs(uuid.toString(), CHARACTERISTIC_RP_STRING)
         }
     }
 }

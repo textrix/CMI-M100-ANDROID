@@ -14,6 +14,7 @@ import kotlin.collections.ArrayList
 import kotlin.concurrent.schedule
 
 const val SERVICE_STRING = "434D492D-4D31-3030-0101-627567696969"
+const val SERVICE_OTA_STRING = "434D492D-464F-5441-0101-627567696969"
 const val CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb"
 
 class BleRepository {
@@ -37,6 +38,8 @@ class BleRepository {
 
     //
     val reportArray = MutableLiveData<ByteArray>()
+
+    val version = MutableLiveData<String>()
 
     fun startScan() {
 
@@ -173,6 +176,8 @@ class BleRepository {
             )
             descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
             gatt.writeDescriptor(descriptor)
+
+            val verCharacteristic = gatt?.let { BleUtil.findVersionCharacteristic(it) }
         }
 
         override fun onCharacteristicChanged(
@@ -205,7 +210,7 @@ class BleRepository {
         ) {
             super.onCharacteristicRead(gatt, characteristic, status)
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                outputLogLine("Characteristic read successfully")
+                //outputLogLine("Characteristic read successfully")
                 readCharacteristic(characteristic)
             } else {
                 outputLogLine("Characteristic read unsuccessful, status: $status")
@@ -220,14 +225,20 @@ class BleRepository {
          * @param characteristic
          */
         private fun readCharacteristic(characteristic: BluetoothGattCharacteristic) {
-            if (BleUtil.matchReportCharacteristic(characteristic)) {
-                val bytes = characteristic.value
-                outputLogLine(bytes.toHexString())
-                reportArray.postValue(bytes)
-            }
-            else {
-                val msg = characteristic.getStringValue(0)
-                outputLogLine("read: $msg")
+            when(characteristic.uuid.toString().uppercase()) {
+                CHARACTERISTIC_REPORT_STRING -> {
+                    val bytes = characteristic.value
+                    //outputLogLine(bytes.toHexString())
+                    reportArray.postValue(bytes)
+                }
+                CHARACTERISTIC_RX_STRING -> {
+                    val msg = characteristic.getStringValue(0)
+                    outputLogLine("read: $msg")
+                }
+                CHARACTERISTIC_VERSiON_STRING -> {
+                    val ver = characteristic.getStringValue(0)
+                    version.postValue(ver)
+                }
             }
         }
     }
@@ -272,16 +283,15 @@ class BleRepository {
         }
     }
 
-    fun readData() {
-        val reportCharacteristic = BleUtil.findReportCharacteristic(bleGatt!!)
-        // disconnect if the characteristic is not found
-        if (reportCharacteristic == null) {
+    fun read(uuidString: String) {
+        val chx = BleUtil.findCharacteristic(bleGatt!!, uuidString)
+        if (null == chx) {
             outputLogLine("Unable to find report characteristic")
             disconnectGattServer()
             return
         }
 
-        val success: Boolean = bleGatt!!.readCharacteristic(reportCharacteristic)
+        val success: Boolean = bleGatt!!.readCharacteristic(chx)
         if (!success) {
             outputLogLine("Failed to read command")
         }
