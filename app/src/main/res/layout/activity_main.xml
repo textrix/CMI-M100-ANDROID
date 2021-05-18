@@ -4,7 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
-
         <variable
             name="viewModel"
             type="me.autolock.m100.cmi.MainViewModel" />
@@ -117,13 +116,14 @@
                 android:fontFamily="monospace"
                 android:textSize="20sp" />
 
-            <Button
-                android:id="@+id/read_button"
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/checkBox"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:onCheckedChanged="@{(button, checked) -> viewModel.readSwitchOnClick(checked)}"
                 android:enabled="@{viewModel.connected ? true : false}"
-                android:onClick="@{()->viewModel.readButtonOnClick()}"
                 android:text="Read" />
+
         </LinearLayout>
 
         <TextView
