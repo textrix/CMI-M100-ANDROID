@@ -30,7 +30,7 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
     val version: LiveData<String>
         get() = bleRepository.version
 
-    var readTimer: Timer? = null
+    private var readTimer: Timer? = null
 
     fun scanButtonOnClick() {
         bleRepository.startScan()
@@ -54,17 +54,7 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
         bleRepository.writeData(text.toByteArray(Charset.defaultCharset()))
     }
 
-    /*
-    fun readButtonOnClick() {
-        readTimer = Timer("read", false).schedule(0, 500) {
-            if (connected.get()) {
-                bleRepository.read(CHARACTERISTIC_REPORT_STRING)
-            }
-        }
-    }
-    */
-
-    fun readSwitchOnClick(checked: Boolean) {
+    fun readSwitchOnCheckedChanged(checked: Boolean) {
         if (checked) {
             readTimer = Timer("read", false)
             readTimer?.schedule(0, 500) {

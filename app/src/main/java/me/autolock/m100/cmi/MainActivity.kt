@@ -89,6 +89,9 @@ class MainActivity : AppCompatActivity() {
         })
 
         initObserver(binding)
+
+        supportActionBar?.hide()
+        binding.statusText.text = APP_VERSION
     }
 
     private fun outputLogText(binding: ActivityMainBinding, it: String) {
