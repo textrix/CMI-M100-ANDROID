@@ -74,6 +74,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="5dp"
             android:orientation="horizontal">
 
             <TextView
@@ -88,9 +89,18 @@
                 android:id="@+id/version_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
                 android:enabled="@{viewModel.connected ? true : false}"
                 android:onClick="@{()->viewModel.versionButtonOnClick()}"
                 android:text="Version" />
+
+            <Button
+                android:id="@+id/fota_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:enabled="@{viewModel.connected ? true : false}"
+                android:text="FOTA" />
         </LinearLayout>
 
         <TextView

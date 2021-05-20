@@ -71,4 +71,5 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
     fun versionButtonOnClick() {
         bleRepository.read(CHARACTERISTIC_VERSiON_STRING)
     }
+
 }

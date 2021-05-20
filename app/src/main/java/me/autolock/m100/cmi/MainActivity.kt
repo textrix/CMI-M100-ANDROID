@@ -2,6 +2,7 @@ package me.autolock.m100.cmi
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Context
@@ -92,6 +93,19 @@ class MainActivity : AppCompatActivity() {
 
         supportActionBar?.hide()
         binding.statusText.text = APP_VERSION
+
+        binding.fotaButton.setOnClickListener {
+            val builder = AlertDialog.Builder(this)
+            builder.setTitle("FOTA")
+            builder.setMessage("Do you want to upgrade F/W?")
+            builder.setPositiveButton("OK") { dialog, id ->
+                binding.readSwitch.isChecked = false
+            }
+            builder.setNegativeButton("Cancel") { dialog, id ->
+                //
+            }
+            builder.show()
+        }
     }
 
     private fun outputLogText(binding: ActivityMainBinding, it: String) {
@@ -163,5 +177,4 @@ class MainActivity : AppCompatActivity() {
         }
         return true
     }
-
 }
