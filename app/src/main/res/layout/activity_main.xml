@@ -39,8 +39,7 @@
                 android:layout_weight="1"
                 android:enabled="@{viewModel.scanning ? false : true}"
                 android:onClick="@{()->viewModel.scanButtonOnClick()}"
-                android:text="@{viewModel.scanning ? `Scanning...` : `Scan`}"
-                style="?android:attr/borderlessButtonStyle" />
+                android:text="@{viewModel.scanning ? `Scanning...` : `Scan`}" />
 
             <Button
                 android:id="@+id/disconnect_button"
@@ -51,8 +50,7 @@
                 android:enabled="@{viewModel.connected ? true : false}"
                 android:onClick="@{()->viewModel.disconnectButtonOnClick()}"
                 android:text="Disconnect"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
         </LinearLayout>
 
         <ScrollView
@@ -175,8 +173,7 @@
                 android:paddingBottom="0dp"
                 android:text="F0"
                 android:textSize="14sp"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
 
             <Button
                 android:id="@+id/btn_off_1"
@@ -195,8 +192,7 @@
                 android:paddingBottom="0dp"
                 android:text="F1"
                 android:textSize="14sp"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
 
             <Button
                 android:id="@+id/btn_off_2"
@@ -215,8 +211,7 @@
                 android:paddingBottom="0dp"
                 android:text="F2"
                 android:textSize="14sp"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
 
             <Button
                 android:id="@+id/btn_off_3"
@@ -235,8 +230,7 @@
                 android:paddingBottom="0dp"
                 android:text="F3"
                 android:textSize="14sp"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
 
             <Button
                 android:id="@+id/btn_off_4"
@@ -255,8 +249,7 @@
                 android:paddingBottom="0dp"
                 android:text="F4"
                 android:textSize="14sp"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
 
             <Button
                 android:id="@+id/btn_off_5"
@@ -275,8 +268,7 @@
                 android:paddingBottom="0dp"
                 android:text="F5"
                 android:textSize="14sp"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
 
             <Button
                 android:id="@+id/btn_off_6"
@@ -295,8 +287,7 @@
                 android:paddingBottom="0dp"
                 android:text="F6"
                 android:textSize="14sp"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
 
             <Button
                 android:id="@+id/btn_off_7"
@@ -315,8 +306,7 @@
                 android:paddingBottom="0dp"
                 android:text="F7"
                 android:textSize="14sp"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
         </LinearLayout>
 
         <TextView
@@ -349,8 +339,7 @@
                 android:paddingRight="0dp"
                 android:paddingBottom="0dp"
                 android:text="O0"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
 
             <Button
                 android:id="@+id/btn_on_1"
@@ -368,8 +357,7 @@
                 android:paddingRight="0dp"
                 android:paddingBottom="0dp"
                 android:text="O1"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
 
             <Button
                 android:id="@+id/btn_on_2"
@@ -387,8 +375,7 @@
                 android:paddingRight="0dp"
                 android:paddingBottom="0dp"
                 android:text="O2"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
 
             <Button
                 android:id="@+id/btn_on_3"
@@ -406,8 +393,7 @@
                 android:paddingRight="0dp"
                 android:paddingBottom="0dp"
                 android:text="O3"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
 
             <Button
                 android:id="@+id/btn_on_4"
@@ -425,8 +411,7 @@
                 android:paddingRight="0dp"
                 android:paddingBottom="0dp"
                 android:text="O4"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
 
             <Button
                 android:id="@+id/btn_on_5"
@@ -444,8 +429,7 @@
                 android:paddingRight="0dp"
                 android:paddingBottom="0dp"
                 android:text="O5"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
 
             <Button
                 android:id="@+id/btn_on_6"
@@ -463,8 +447,7 @@
                 android:paddingRight="0dp"
                 android:paddingBottom="0dp"
                 android:text="O6"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
 
             <Button
                 android:id="@+id/btn_on_7"
@@ -482,8 +465,7 @@
                 android:paddingRight="0dp"
                 android:paddingBottom="0dp"
                 android:text="O7"
-                tools:ignore="HardcodedText"
-                style="?android:attr/borderlessButtonStyle" />
+                tools:ignore="HardcodedText" />
         </LinearLayout>
 
         <TextView

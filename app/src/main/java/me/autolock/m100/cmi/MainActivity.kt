@@ -8,6 +8,7 @@ import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
@@ -16,6 +17,7 @@ import android.view.View
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -33,7 +35,7 @@ val PERMISSIONS = arrayOf(
 
 var handler: Handler? = null
 
-fun outputLogLine(str: String) {
+fun outputLogLine(str: String?) {
     handler?.obtainMessage(1, str)?.sendToTarget()
 }
 
@@ -45,6 +47,14 @@ class MainActivity : AppCompatActivity() {
     private val viewModel by viewModel<MainViewModel>()
     private var logLine = 0
     private var adapter: BleListAdapter? = null
+    private val fotaLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val intent: Intent? = result.data
+            val uri: Uri? = intent?.data
+            outputLogLine(uri?.toString())
+            outputLogLine(uri?.path)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -99,14 +109,42 @@ class MainActivity : AppCompatActivity() {
             builder.setTitle("FOTA")
             builder.setMessage("Do you want to upgrade F/W?")
             builder.setPositiveButton("OK") { dialog, id ->
-                binding.readSwitch.isChecked = false
+                var readPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                if (readPermission == PackageManager.PERMISSION_DENIED) {
+                    ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), REQ_READ_EXTERNAL_STORAGE)
+                }
+                else {
+                    binding.readSwitch.isChecked = false
+
+                    val intent = Intent()
+                        .setType("application/octet-stream")
+                        .setAction(Intent.ACTION_GET_CONTENT)
+                    //startActivityForResult(intent, REQ_READ_EXTERNAL_STORAGE)
+                    fotaLauncher.launch(intent)
+                }
             }
             builder.setNegativeButton("Cancel") { dialog, id ->
-                //
+                // do nothing
             }
             builder.show()
         }
     }
+
+    /*
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == Activity.RESULT_OK) {
+            when (requestCode) {
+                REQ_READ_EXTERNAL_STORAGE -> {
+                    data?.let {
+                        val uri: Uri? = it.data
+                        outputLogLine(uri?.toString())
+                    }
+                }
+            }
+        }
+    }
+     */
 
     private fun outputLogText(binding: ActivityMainBinding, it: String) {
         binding.logText.append(it)
