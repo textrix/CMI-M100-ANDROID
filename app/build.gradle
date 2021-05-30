@@ -38,6 +38,7 @@ android {
 }
 
 dependencies {
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     def archLifecycleVersion = '2.2.0'
     def materialVersion = '1.2.1'
 

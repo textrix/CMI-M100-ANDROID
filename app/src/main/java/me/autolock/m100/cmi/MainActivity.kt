@@ -3,6 +3,7 @@ package me.autolock.m100.cmi
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Context
@@ -13,6 +14,8 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.DocumentsContract
+import android.provider.MediaStore
 import android.view.View
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,9 +24,17 @@ import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import me.autolock.m100.cmi.databinding.ActivityMainBinding
 import org.koin.android.ext.android.bind
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import java.io.File
+import java.io.FileNotFoundException
+import java.io.IOException
 
 // used to identify adding bluetooth names
 const val REQUEST_ENABLE_BT = 1
@@ -50,9 +61,46 @@ class MainActivity : AppCompatActivity() {
     private val fotaLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val intent: Intent? = result.data
-            val uri: Uri? = intent?.data
-            outputLogLine(uri?.toString())
-            outputLogLine(uri?.path)
+            intent?.let {
+                val uri: Uri? = intent.data
+                uri?.let {
+                    outputLogLine(uri.toString())
+                    outputLogLine(uri.path)
+
+                    val dialog = FotaDialog(this@MainActivity)
+                    CoroutineScope(Main).launch {
+                        dialog.show()
+
+                        try {
+                            val buff = ByteArray(512)
+                            val input = contentResolver.openInputStream(uri)
+                            input?.let {
+                                val fileLength = input.available()
+                                dialog.setLength(fileLength)
+                                var current = 0
+                                while (true) {
+                                    val size = input.read(buff)
+                                    if (size <= 0)
+                                        break
+                                    current += size
+                                    val percent = current * 100 / fileLength
+                                    dialog.setProgress(current)
+                                    outputLogLine("$current / $fileLength / ${percent}%")
+                                    yield()
+                                }
+                                input.close()
+                            }
+                        }
+                        catch (e: FileNotFoundException) {
+                        }
+                        catch (e: IOException) {
+                        }
+
+                        delay(1000)
+                        dialog.dismiss()
+                    }
+                }
+            }
         }
     }
 
@@ -119,7 +167,6 @@ class MainActivity : AppCompatActivity() {
                     val intent = Intent()
                         .setType("application/octet-stream")
                         .setAction(Intent.ACTION_GET_CONTENT)
-                    //startActivityForResult(intent, REQ_READ_EXTERNAL_STORAGE)
                     fotaLauncher.launch(intent)
                 }
             }
@@ -129,22 +176,6 @@ class MainActivity : AppCompatActivity() {
             builder.show()
         }
     }
-
-    /*
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == Activity.RESULT_OK) {
-            when (requestCode) {
-                REQ_READ_EXTERNAL_STORAGE -> {
-                    data?.let {
-                        val uri: Uri? = it.data
-                        outputLogLine(uri?.toString())
-                    }
-                }
-            }
-        }
-    }
-     */
 
     private fun outputLogText(binding: ActivityMainBinding, it: String) {
         binding.logText.append(it)
