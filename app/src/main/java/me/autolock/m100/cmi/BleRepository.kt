@@ -9,6 +9,7 @@ import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.MutableLiveData
+import kotlinx.coroutines.delay
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.concurrent.schedule
@@ -40,6 +41,11 @@ class BleRepository {
     val reportArray = MutableLiveData<ByteArray>()
 
     val version = MutableLiveData<String>()
+
+    private var otaTotal = 0
+    private var otaCurrent = 0
+    private var otaList = mutableListOf<ByteArray>()
+    val otaPercent = MutableLiveData<Int>()
 
     fun startScan() {
 
@@ -105,7 +111,7 @@ class BleRepository {
             // get scanned device
             val device = result.device
             // filter out devices with name starting with 'CMI-M100'
-            if (device.name == null || !result.device.name.startsWith("CMI-M100")) {
+            if (device.name == null || !device.name.startsWith("CMI-M100")) {
                 return
             }
             // get scanned device MAC address
@@ -140,10 +146,15 @@ class BleRepository {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 // update the connection status message
                 outputLogLine("Connected to the GATT server")
-                gatt.discoverServices()
+                gatt.requestMtu(517)
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 disconnectGattServer()
             }
+        }
+
+        override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
+            super.onMtuChanged(gatt, mtu, status)
+            gatt?.discoverServices()
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
@@ -180,6 +191,30 @@ class BleRepository {
             val verCharacteristic = gatt?.let { BleUtil.findVersionCharacteristic(it) }
         }
 
+        override fun onDescriptorWrite(gatt: BluetoothGatt?, descriptor: BluetoothGattDescriptor?, status: Int) {
+            super.onDescriptorWrite(gatt, descriptor, status)
+            outputLogLine("${descriptor?.characteristic?.uuid.toString().uppercase()} onDescriptorWrite")
+            if (descriptor?.characteristic?.uuid.toString().uppercase() == CHARACTERISTIC_RX_STRING) {
+                // find ota characteristics from the GATT server
+                val otaCharacteristic = gatt?.let { BleUtil.findOtaCharacteristic(it) }
+                // disconnect if the characteristic is not found
+                if (otaCharacteristic == null) {
+                    outputLogLine("Unable to find ota characteristic")
+                    disconnectGattServer()
+                    return
+                }
+
+                gatt.setCharacteristicNotification(otaCharacteristic, true)
+
+                // UUID for notification
+                val otaDescriptor: BluetoothGattDescriptor = otaCharacteristic.getDescriptor(
+                    UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG)
+                )
+                otaDescriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                gatt.writeDescriptor(otaDescriptor)
+            }
+        }
+
         override fun onCharacteristicChanged(
             gatt: BluetoothGatt?,
             characteristic: BluetoothGattCharacteristic
@@ -187,6 +222,12 @@ class BleRepository {
             super.onCharacteristicChanged(gatt, characteristic)
             //Log.d(TAG, "characteristic changed: " + characteristic.uuid.toString())
             readCharacteristic(characteristic)
+
+            if (characteristic.uuid.toString().uppercase() == CHARACTERISTIC_FOTA_STRING) {
+                outputLogLine("fota")
+                otaList.removeAt(0)
+                Timer().schedule(10) { writeOTA() }
+            }
         }
 
         override fun onCharacteristicWrite(
@@ -239,6 +280,9 @@ class BleRepository {
                     val ver = characteristic.getStringValue(0)
                     version.postValue(ver)
                 }
+                CHARACTERISTIC_FOTA_STRING -> {
+
+                }
             }
         }
     }
@@ -266,7 +310,7 @@ class BleRepository {
         }
     }
 
-    fun writeData(rxByteArray: ByteArray){
+    fun writeData(rxByteArray: ByteArray) {
         val rxCharacteristic = BleUtil.findRxCharacteristic(bleGatt!!)
         // disconnect if the characteristic is not found
         if (rxCharacteristic == null) {
@@ -294,6 +338,39 @@ class BleRepository {
         val success: Boolean = bleGatt!!.readCharacteristic(chx)
         if (!success) {
             outputLogLine("Failed to read command")
+        }
+    }
+
+    fun startOTA(list: MutableList<ByteArray>, total: Int) {
+        otaTotal = total
+        otaCurrent = 0
+        otaPercent.postValue(0)
+        otaList = list
+        writeOTA()
+    }
+
+    private fun writeOTA() {
+        val otaCharacteristic = BleUtil.findOtaCharacteristic(bleGatt!!)
+        // disconnect if the characteristic is not found
+        if (otaCharacteristic == null) {
+            outputLogLine("Unable to find ota characteristic")
+            disconnectGattServer()
+            return
+        }
+
+        if (otaList.isNotEmpty()) {
+            otaPercent.postValue(otaCurrent)
+            otaCurrent += otaList[0].size
+            otaCharacteristic.value = otaList[0]
+            val success: Boolean = bleGatt!!.writeCharacteristic(otaCharacteristic)
+            // check the result
+            if (!success) {
+                outputLogLine("Failed to write command")
+                Timer().schedule(100) { writeOTA() }
+            }
+        }
+        else {
+            // end
         }
     }
 }

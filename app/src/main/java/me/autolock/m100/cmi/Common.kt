@@ -6,12 +6,16 @@ import android.database.Cursor
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import java.text.NumberFormat
 
 fun Byte.toPositiveInt() = toInt() and 0xFF
 
 fun ByteArray.toHexString() = joinToString(separator = " ") {
     it.toPositiveInt().toString(16).padStart(2, '0').uppercase()
 }
+
+val Int.commaString: String
+    get() = NumberFormat.getInstance().format(this)
 
 fun getRealPathFromURI(uri: Uri): String? {
     if (uri.path?.startsWith("/storage") == true) {

@@ -58,47 +58,15 @@ class MainActivity : AppCompatActivity() {
     private val viewModel by viewModel<MainViewModel>()
     private var logLine = 0
     private var adapter: BleListAdapter? = null
+    private var dialog: FotaDialog? = null
+
     private val fotaLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val intent: Intent? = result.data
-            intent?.let {
-                val uri: Uri? = intent.data
-                uri?.let {
-                    outputLogLine(uri.toString())
-                    outputLogLine(uri.path)
-
-                    val dialog = FotaDialog(this@MainActivity)
-                    CoroutineScope(Main).launch {
-                        dialog.show()
-
-                        try {
-                            val buff = ByteArray(512)
-                            val input = contentResolver.openInputStream(uri)
-                            input?.let {
-                                val fileLength = input.available()
-                                dialog.setLength(fileLength)
-                                var current = 0
-                                while (true) {
-                                    val size = input.read(buff)
-                                    if (size <= 0)
-                                        break
-                                    current += size
-                                    val percent = current * 100 / fileLength
-                                    dialog.setProgress(current)
-                                    outputLogLine("$current / $fileLength / ${percent}%")
-                                    yield()
-                                }
-                                input.close()
-                            }
-                        }
-                        catch (e: FileNotFoundException) {
-                        }
-                        catch (e: IOException) {
-                        }
-
-                        delay(1000)
-                        dialog.dismiss()
-                    }
+            result.data?.let { intent ->
+                intent.data?.let { uri ->
+                    dialog = FotaDialog(this@MainActivity)
+                    dialog?.show()
+                    viewModel.loadBinFile(contentResolver, uri)
                 }
             }
         }
@@ -213,6 +181,15 @@ class MainActivity : AppCompatActivity() {
         })
         viewModel.version.observe(this, {
             binding.versionText.text = it
+        })
+        viewModel.otaLength.observe(this, {
+            dialog?.setLength(it)
+        })
+        viewModel.otaCurrent.observe(this, {
+            dialog?.setCurrent(it)
+            if (viewModel.otaLength.value != 0 && viewModel.otaLength.value == viewModel.otaCurrent.value) {
+                dialog?.dismiss()
+            }
         })
     }
 

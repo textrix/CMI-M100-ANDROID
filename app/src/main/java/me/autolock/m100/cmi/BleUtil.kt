@@ -54,6 +54,10 @@ class BleUtil {
             return findCharacteristic(gatt, CHARACTERISTIC_RX_STRING)
         }
 
+        fun findOtaCharacteristic(gatt: BluetoothGatt): BluetoothGattCharacteristic? {
+            return findCharacteristic(gatt, CHARACTERISTIC_FOTA_STRING)
+        }
+
         fun findVersionCharacteristic(gatt: BluetoothGatt): BluetoothGattCharacteristic? {
             return findCharacteristic(gatt, CHARACTERISTIC_VERSiON_STRING)
         }
@@ -77,7 +81,8 @@ class BleUtil {
                 characteristicUuidString,
                 CHARACTERISTIC_REPORT_STRING,
                 CHARACTERISTIC_RX_STRING,
-                CHARACTERISTIC_VERSiON_STRING
+                CHARACTERISTIC_VERSiON_STRING,
+                CHARACTERISTIC_FOTA_STRING
             )
         }
 
@@ -154,5 +159,7 @@ class BleUtil {
             val uuid: UUID = characteristic.uuid
             return matchUUIDs(uuid.toString(), uuidString)
         }
+
+
     }
 }

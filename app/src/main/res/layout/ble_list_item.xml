@@ -11,23 +11,25 @@
         android:layout_height="match_parent"
         android:layout_weight="7"
         android:orientation="vertical">
+
         <TextView
-            android:layout_marginStart="10dp"
             android:id="@+id/ble_name"
             android:layout_width="match_parent"
-            android:layout_weight="2"
             android:layout_height="0dp"
-            android:textColor="@color/black"
-            android:textSize="22sp"
-            android:text="name"/>
-        <TextView
             android:layout_marginStart="10dp"
-            android:layout_marginBottom="10dp"
+            android:layout_weight="2"
+            android:text="name"
+            android:textAppearance="@style/TextAppearance.AppCompat.Large" />
+
+        <TextView
             android:id="@+id/ble_address"
             android:layout_width="match_parent"
-            android:layout_weight="1"
             android:layout_height="0dp"
-            android:text="12:13:13:5a:ee"/>
+            android:layout_marginStart="10dp"
+            android:layout_marginBottom="10dp"
+            android:layout_weight="1"
+            android:text="12:13:13:5a:ee"
+            android:textAppearance="@style/TextAppearance.AppCompat.Small" />
     </LinearLayout>
 
 
