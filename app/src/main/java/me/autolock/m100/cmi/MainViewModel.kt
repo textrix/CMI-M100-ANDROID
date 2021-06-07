@@ -3,6 +3,7 @@ package me.autolock.m100.cmi
 import android.app.Application
 import android.bluetooth.BluetoothDevice
 import android.content.ContentResolver
+import android.content.Context
 import android.net.Uri
 import androidx.databinding.ObservableBoolean
 import androidx.lifecycle.*
@@ -39,9 +40,10 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
     val version: LiveData<String>
         get() = bleRepository.version
 
-    private val otaList = mutableListOf<ByteArray>()
-    val otaLength = MutableLiveData<Int>(0)
-    val otaCurrent = MutableLiveData<Int>(0)
+    val otaLength: LiveData<Int>
+        get() = bleRepository.otaLengthObserver
+    val otaCurrent: LiveData<Int>
+        get() = bleRepository.otaCurrentObserver
 
     private var readTimer: Timer? = null
 
@@ -85,23 +87,46 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
         bleRepository.read(CHARACTERISTIC_VERSiON_STRING)
     }
 
-    fun startOTA(list: MutableList<ByteArray>, total: Int) {
-        bleRepository.startOTA(list, total)
+    fun startOTA(list: MutableList<ByteArray>, length: Int) {
+        bleRepository.startOTA(list, length)
     }
 
-    fun loadBinFile(contentResolver: ContentResolver, uri: Uri) {
-        viewModelScope.launch() {
-            _loadBinFile(contentResolver, uri)
+    fun loadBinFile(context: Context, uri: Uri): Pair<MutableList<ByteArray>, Int> {
+        val list = mutableListOf<ByteArray>()
+        var length = 0
+        try {
+            context.contentResolver.openInputStream(uri).use { input ->
+                input?.let {
+                    length = input.available()
+                    var remain = length
+                    var current = 0
+                    while (true) {
+                        val buff = ByteArray(if (512 < length) 512 else remain)
+                        val size = input.read(buff)
+                        if (size <= 0)
+                            break
+                        list.add(buff)
+                        current += size
+                        remain -= size
+                    }
+                }
+            }
         }
+        catch (e: FileNotFoundException) {
+        }
+        catch (e: IOException) {
+        }
+        return Pair(list, length)
     }
 
+    /*
     @Suppress("BlockingMethodInNonBlockingContext")
-    private suspend fun _loadBinFile(contentResolver: ContentResolver, uri: Uri) {
+    private suspend fun _loadBinFile(context: Context, uri: Uri) {
         withContext(Dispatchers.IO) {
             try {
                 otaLength.postValue(0)
                 otaCurrent.postValue(0)
-                val result = contentResolver.openInputStream(uri).use { input ->
+                val result = context.contentResolver.openInputStream(uri).use { input ->
                     input?.let {
                         val fileLength = input.available()
                         var remain = fileLength
@@ -128,5 +153,6 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
             }
         }
     }
+    */
 
 }

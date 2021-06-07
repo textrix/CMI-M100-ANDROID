@@ -7,23 +7,42 @@ import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.MutableLiveData
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.concurrent.schedule
+import kotlin.coroutines.CoroutineContext
 
 const val SERVICE_STRING = "434D492D-4D31-3030-0101-627567696969"
 const val SERVICE_OTA_STRING = "434D492D-464F-5441-0101-627567696969"
 const val CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb"
 
-class BleRepository {
+/*
+sealed class BleOpType {
+    abstract val device: BluetoothDevice
+}
+
+data class RequestMTU(
+    override val device: BluetoothDevice,
+    val mtu: Int,
+    val result: Int
+) : BleOpType()
+*/
+
+class BleRepository : CoroutineScope  {
+    private val job = Job()
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.IO + job
+
     // ble manager
-    val bleManager: BluetoothManager =
+    private val bleManager: BluetoothManager =
         CmiApplication.applicationContext().getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     // ble adapter
-    val bleAdapter: BluetoothAdapter?
+    private val bleAdapter: BluetoothAdapter?
         get() = bleManager.adapter
     // ble Gatt
     private var bleGatt: BluetoothGatt? = null
@@ -42,10 +61,13 @@ class BleRepository {
 
     val version = MutableLiveData<String>()
 
-    private var otaTotal = 0
-    private var otaCurrent = 0
     private var otaList = mutableListOf<ByteArray>()
-    val otaPercent = MutableLiveData<Int>()
+    private var otaLength = 0
+    private var otaCurrent = 0
+    val otaLengthObserver = MutableLiveData<Int>(0)
+    val otaCurrentObserver = MutableLiveData<Int>(0)
+
+    private val mtuChannel = Channel<Int>()
 
     fun startScan() {
 
@@ -146,7 +168,16 @@ class BleRepository {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 // update the connection status message
                 outputLogLine("Connected to the GATT server")
-                gatt.requestMtu(517)
+                launch {
+                    val result = withTimeoutOrNull(1000L) {
+                        gatt.requestMtu(517)
+                        Log.d("ble", "gatt.requestMtu begin")
+                        mtuChannel.receive()
+                        Log.d("ble", "gatt.requestMtu end")
+                        gatt.discoverServices()
+                        //mtuChannel.receive()
+                    }
+                }
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 disconnectGattServer()
             }
@@ -154,7 +185,13 @@ class BleRepository {
 
         override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
             super.onMtuChanged(gatt, mtu, status)
-            gatt?.discoverServices()
+            Log.d("ble", "onMtuChanged")
+            launch {
+                if (mtuChannel.trySend(0).isFailure) {
+                    outputLogLine("Changing MTU failed.")
+                }
+            }
+            //gatt?.discoverServices()
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
@@ -215,44 +252,42 @@ class BleRepository {
             }
         }
 
-        override fun onCharacteristicChanged(
-            gatt: BluetoothGatt?,
-            characteristic: BluetoothGattCharacteristic
-        ) {
+        override fun onCharacteristicChanged(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic) {
             super.onCharacteristicChanged(gatt, characteristic)
             //Log.d(TAG, "characteristic changed: " + characteristic.uuid.toString())
             readCharacteristic(characteristic)
 
             if (characteristic.uuid.toString().uppercase() == CHARACTERISTIC_FOTA_STRING) {
-                outputLogLine("fota")
-                otaList.removeAt(0)
-                Timer().schedule(10) { writeOTA() }
             }
         }
 
-        override fun onCharacteristicWrite(
-            gatt: BluetoothGatt?,
-            characteristic: BluetoothGattCharacteristic?,
-            status: Int
-        ) {
+        override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
             super.onCharacteristicWrite(gatt, characteristic, status)
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                outputLogLine("Characteristic written successfully")
+                //outputLogLine("Characteristic written successfully")
+                when(characteristic?.uuid.toString().uppercase()) {
+                    CHARACTERISTIC_FOTA_STRING -> {
+                        otaCurrentObserver.postValue(otaCurrent)
+                        otaList.removeAt(0)
+                        writeOTA()
+                    }
+                }
             } else {
                 outputLogLine("Characteristic write unsuccessful, status: $status")
                 disconnectGattServer()
             }
         }
 
-        override fun onCharacteristicRead(
-            gatt: BluetoothGatt?,
-            characteristic: BluetoothGattCharacteristic,
-            status: Int
-        ) {
+        override fun onCharacteristicRead(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic, status: Int) {
             super.onCharacteristicRead(gatt, characteristic, status)
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 //outputLogLine("Characteristic read successfully")
                 readCharacteristic(characteristic)
+                when(characteristic.uuid.toString().uppercase()) {
+                    CHARACTERISTIC_FOTA_STRING -> {
+
+                    }
+                }
             } else {
                 outputLogLine("Characteristic read unsuccessful, status: $status")
                 // Trying to read from the Time Characteristic? It doesnt have the property or permissions
@@ -281,7 +316,7 @@ class BleRepository {
                     version.postValue(ver)
                 }
                 CHARACTERISTIC_FOTA_STRING -> {
-
+                    val result = characteristic.getStringValue(0)
                 }
             }
         }
@@ -291,9 +326,14 @@ class BleRepository {
      * Connect to the ble device
      */
     fun connectDevice(device: BluetoothDevice?) {
-        // update the status
-        outputLogLine("Connecting to ${device?.address}")
-        bleGatt = device?.connectGatt(CmiApplication.applicationContext(), false, gattClientCallback)
+        launch(Dispatchers.IO) {
+            // update the status
+            outputLogLine("Connecting to ${device?.address}")
+            device?.let {
+                bleGatt = device.connectGatt(CmiApplication.applicationContext(),false, gattClientCallback)
+                mtuChannel.receive()
+            }
+        }
     }
 
     /**
@@ -341,11 +381,12 @@ class BleRepository {
         }
     }
 
-    fun startOTA(list: MutableList<ByteArray>, total: Int) {
-        otaTotal = total
-        otaCurrent = 0
-        otaPercent.postValue(0)
+    fun startOTA(list: MutableList<ByteArray>, length: Int) {
         otaList = list
+        otaLength = length
+        otaCurrent = 0
+        otaLengthObserver.postValue(otaLength)
+        otaCurrentObserver.postValue(otaCurrent)
         writeOTA()
     }
 
@@ -359,18 +400,31 @@ class BleRepository {
         }
 
         if (otaList.isNotEmpty()) {
-            otaPercent.postValue(otaCurrent)
+            otaCurrentObserver.postValue(otaCurrent)
             otaCurrent += otaList[0].size
             otaCharacteristic.value = otaList[0]
             val success: Boolean = bleGatt!!.writeCharacteristic(otaCharacteristic)
             // check the result
             if (!success) {
                 outputLogLine("Failed to write command")
-                Timer().schedule(100) { writeOTA() }
+                //Timer().schedule(100) { writeOTA() }
             }
         }
         else {
             // end
         }
     }
+
+    /*
+    suspend fun requestMtu(mut: Int) {
+        runCatching {
+            launch {
+                mtuChannel.send(0)
+            }
+        }
+    }*/
+}
+
+private class GattResponse<out E>(val e: E, val status: Int) {
+    inline val isSuccess get() = status == BluetoothGatt.GATT_SUCCESS
 }

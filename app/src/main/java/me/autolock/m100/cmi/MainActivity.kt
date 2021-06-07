@@ -64,9 +64,11 @@ class MainActivity : AppCompatActivity() {
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.let { intent ->
                 intent.data?.let { uri ->
-                    dialog = FotaDialog(this@MainActivity)
+                    dialog = FotaDialog(this)
+                    dialog?.setTitle("Loading BIN File...")
                     dialog?.show()
-                    viewModel.loadBinFile(contentResolver, uri)
+                    val (list, length) = viewModel.loadBinFile(this, uri)
+                    viewModel.startOTA(list, length)
                 }
             }
         }
@@ -176,7 +178,9 @@ class MainActivity : AppCompatActivity() {
             }*/
         })
         viewModel.reportArray.observe(this, {
-            val str = it.toHexString() + " (%d)".format(it[2].toPositiveInt() + it[3].toPositiveInt() * 256)
+            val adc1 = it[2].toPositiveInt() + it[3].toPositiveInt() * 256
+            val adc2 = it[4].toPositiveInt() + it[5].toPositiveInt() * 256
+            val str = it.toHexString() + " ($adc1, $adc2)"
             binding.reportText.text = str
         })
         viewModel.version.observe(this, {

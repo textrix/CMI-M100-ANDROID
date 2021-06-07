@@ -85,7 +85,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:fontFamily="monospace"
-                android:textSize="20sp" />
+                android:textAppearance="@style/TextAppearance.AppCompat.Small" />
 
             <Button
                 android:id="@+id/version_button"
@@ -128,7 +128,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:fontFamily="monospace"
-                android:textSize="20sp" />
+                android:textAppearance="@style/TextAppearance.AppCompat.Small" />
 
             <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/read_switch"

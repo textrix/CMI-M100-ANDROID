@@ -26,6 +26,11 @@ class FotaDialog constructor(context: Context) : Dialog(context) {
         length = fileLength
     }
 
+    fun setTitle(title: String) {
+        val progressTitle = findViewById<TextView>(R.id.progress_title)
+        progressTitle.text = title
+    }
+
     init {
         setCanceledOnTouchOutside(false)
         setCancelable(false)
