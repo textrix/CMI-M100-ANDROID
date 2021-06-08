@@ -8,7 +8,7 @@ import java.util.*
 
 const val CHARACTERISTIC_REPORT_STRING = "434D492D-4D31-3030-0102-627567696969"
 const val CHARACTERISTIC_RX_STRING = "434D492D-4D31-3030-0103-627567696969"
-const val CHARACTERISTIC_VERSiON_STRING = "434D492D-464F-5441-0102-627567696969"
+const val CHARACTERISTIC_VERSION_STRING = "434D492D-464F-5441-0102-627567696969"
 const val CHARACTERISTIC_FOTA_STRING = "434D492D-464F-5441-0103-627567696969"
 
 
@@ -59,7 +59,7 @@ class BleUtil {
         }
 
         fun findVersionCharacteristic(gatt: BluetoothGatt): BluetoothGattCharacteristic? {
-            return findCharacteristic(gatt, CHARACTERISTIC_VERSiON_STRING)
+            return findCharacteristic(gatt, CHARACTERISTIC_VERSION_STRING)
         }
 
         /**
@@ -81,7 +81,7 @@ class BleUtil {
                 characteristicUuidString,
                 CHARACTERISTIC_REPORT_STRING,
                 CHARACTERISTIC_RX_STRING,
-                CHARACTERISTIC_VERSiON_STRING,
+                CHARACTERISTIC_VERSION_STRING,
                 CHARACTERISTIC_FOTA_STRING
             )
         }

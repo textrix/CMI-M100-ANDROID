@@ -1,16 +1,10 @@
 package me.autolock.m100.cmi
 
-import android.app.Application
 import android.bluetooth.BluetoothDevice
-import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
 import androidx.databinding.ObservableBoolean
 import androidx.lifecycle.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.nio.charset.Charset
@@ -84,7 +78,7 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
     }
 
     fun versionButtonOnClick() {
-        bleRepository.read(CHARACTERISTIC_VERSiON_STRING)
+        bleRepository.read(CHARACTERISTIC_VERSION_STRING)
     }
 
     fun startOTA(list: MutableList<ByteArray>, length: Int) {
