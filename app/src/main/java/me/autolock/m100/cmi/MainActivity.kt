@@ -68,6 +68,7 @@ class MainActivity : AppCompatActivity() {
                     dialog?.setTitle("Loading BIN File...")
                     dialog?.show()
                     val (list, length) = viewModel.loadBinFile(this, uri)
+                    dialog?.setTitle("Upload BIN File...")
                     viewModel.startOTA(list, length)
                 }
             }

@@ -1,10 +1,12 @@
 package me.autolock.m100.cmi
 
 import android.bluetooth.*
+import android.util.Log
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.lang.Exception
@@ -27,6 +29,7 @@ class BleConnection(private val bleDevice: BluetoothDevice): CoroutineScope {
     private val writeDescriptorChannel = Channel<Response<BluetoothGattDescriptor>>()
     private val readChannel = Channel<Response<BluetoothGattCharacteristic>>()
     private val writeChannel = Channel<Response<BluetoothGattCharacteristic>>()
+    private val changedChannel = Channel<Response<BluetoothGattCharacteristic>>()
 
     private val opMutex = Mutex()
 
@@ -67,6 +70,8 @@ class BleConnection(private val bleDevice: BluetoothDevice): CoroutineScope {
         }
 
         override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+            //outputLogLine("onCharacteristicWrite")
+            //Log.d("ble", "onCharacteristicWrite")
             writeChannel.launchAndResume(characteristic, status)
         }
 
@@ -75,7 +80,9 @@ class BleConnection(private val bleDevice: BluetoothDevice): CoroutineScope {
         }
 
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
-            //launch { characteristicChangedChannel.send(characteristic) }
+            //outputLogLine("onCharacteristicChanged")
+            //Log.d("ble", "onCharacteristicChanged")
+            changedChannel.launchAndResume(characteristic, BluetoothGatt.GATT_SUCCESS)
         }
 
         override fun onDescriptorRead(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
@@ -124,6 +131,7 @@ class BleConnection(private val bleDevice: BluetoothDevice): CoroutineScope {
         writeDescriptorChannel.close()
         readChannel.close()
         writeChannel.close()
+        changedChannel.close()
 
         bluetoothGatt!!.disconnect()
         bluetoothGatt!!.close()
@@ -168,6 +176,37 @@ class BleConnection(private val bleDevice: BluetoothDevice): CoroutineScope {
         writeCharacteristic(charx)
     }
 
+    suspend fun writeAndResponse(cx: BluetoothGattCharacteristic) = requestAndSuspend(writeChannel, true) {
+        writeCharacteristic(cx)
+    }
+
+    suspend fun writeAndResponse1(cx: BluetoothGattCharacteristic) {
+        if_isClosed_throw_ConnectionClosedException()
+        return opMutex.withLock {
+            if_isClosed_throw_ConnectionClosedException()
+            requireGatt().writeCharacteristic(cx).if_failed_throw_OperationInitiationFailedException()
+
+            var count = 0
+            var response: Response<BluetoothGattCharacteristic>? = null
+            while (count < 2) {
+                response = select<Response<BluetoothGattCharacteristic>> {
+                    writeChannel.onReceive {
+                        ++count
+                        it
+                    }
+                    changedChannel.onReceive {
+                        ++count
+                        it
+                    }
+                }
+            }
+            if (!response!!.isSuccess) {
+                throw OperationFailedException(response.status)
+            }
+            response.e
+        }
+    }
+
     /*
         wraps the callback's parameters, resumes suspended coroutine bye send.
      */
@@ -181,12 +220,15 @@ class BleConnection(private val bleDevice: BluetoothDevice): CoroutineScope {
         wraps the function that returns a boolean in Gatt and then suspends until the callback is called.
         wait for one operation to fully complete to avoid Gatt errors
      */
-    private suspend inline fun <E> requestAndSuspend(ch: ReceiveChannel<Response<E>>, op: BluetoothGatt.() -> Boolean): E {
+    private suspend inline fun <E> requestAndSuspend(ch: ReceiveChannel<Response<E>>, changed: Boolean = false, op: BluetoothGatt.() -> Boolean): E {
         if_isClosed_throw_ConnectionClosedException()
         return opMutex.withLock {
             if_isClosed_throw_ConnectionClosedException()
             requireGatt().op().if_failed_throw_OperationInitiationFailedException()
             val response = ch.receive()
+            if (changed) {
+                changedChannel.receive()
+            }
             if (!response.isSuccess) {
                 throw OperationFailedException(response.status)
             }

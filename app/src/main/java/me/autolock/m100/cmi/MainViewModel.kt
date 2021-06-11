@@ -97,18 +97,12 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
                     length = input.available()
                     var remain = length
                     var current = 0
+                    val buff = ByteArray(OTA_CHUNK_SIZE)
                     while (true) {
-                        val buff = ByteArray(512 + 2)
-                        val size = input.read(buff, 0, 512)
+                        val size = input.read(buff, 0, OTA_CHUNK_SIZE)
                         if (size <= 0)
                             break
-                        val crc = crc16(buff.copyOf(size))
-                        //Log.d("ble", "${crc.toString(16)}")
-                        //Log.d("ble", "${(crc and 0xFFU).toByte()}")
-                        //Log.d("ble", "${((crc shr 8) and 0xFFU).toByte()}")
-                        buff[size] = (crc and 0xFFU).toByte()
-                        buff[size + 1] = ((crc shr 8) and 0xFFU).toByte()
-                        list.add(buff.copyOf(size + 2))
+                        list.add(buff.copyOf(size))
                         current += size
                         remain -= size
                     }

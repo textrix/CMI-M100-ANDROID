@@ -20,6 +20,7 @@ import kotlin.coroutines.CoroutineContext
 const val SERVICE_STRING = "434D492D-4D31-3030-0101-627567696969"
 const val SERVICE_OTA_STRING = "434D492D-464F-5441-0101-627567696969"
 const val CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb"
+const val OTA_CHUNK_SIZE = 512
 
 /*
 sealed class BleOpType {
@@ -184,6 +185,11 @@ class BleRepository : CoroutineScope  {
                     connection.setCharacteristicNotificationOnRemote(ota, true, timeout = timeout)
                 }
 
+                connection.findCharacteristic(CHARACTERISTIC_FOTA_CMD_STRING)?.let { ota_cmd ->
+                    connection.setCharacteristicNotification(ota_cmd, true)
+                    connection.setCharacteristicNotificationOnRemote(ota_cmd, true, timeout = timeout)
+                }
+
                 connection.findCharacteristic(CHARACTERISTIC_VERSION_STRING)?.let { ver ->
                     connection.read(ver)
                     val str = ver.getStringValue(0)
@@ -260,7 +266,10 @@ class BleRepository : CoroutineScope  {
             connection?.let {
                 connection.findCharacteristic(uuidString)?.let { characteristic ->
                     characteristic.value = data
-                    connection.write(characteristic)
+                    connection.writeAndResponse(characteristic)
+                    //Log.d("ble", "write")
+                    //connection.changed()
+                    //Log.d("ble", "changed")
                     /*when (uuidString) {
                         CHARACTERISTIC_RX_STRING -> relayResponse.postValue(characteristic.getStringValue(0))
                         CHARACTERISTIC_FOTA_CMD_STRING -> fotaCmdResponse.postValue(characteristic.getStringValue(0))
@@ -288,32 +297,25 @@ class BleRepository : CoroutineScope  {
         launch {
             try {
                 otaLengthObserver.postValue(length)
-                val result =
-                    writeAndResponse(CHARACTERISTIC_FOTA_CMD_STRING, "FOTA:Begin".toByteArray())
+                val result = writeAndResponse(CHARACTERISTIC_FOTA_CMD_STRING, "FOTA:Begin".toByteArray())
                 var current = 0
                 otaCurrentObserver.postValue(current)
                 var count = 0
                 for (chunk in list) {
-                    var done = true; do {
-                        val result1 = write(CHARACTERISTIC_FOTA_STRING, chunk)
-                        bleConnection?.let {
-                            it.findCharacteristic(CHARACTERISTIC_FOTA_STRING)?.let {
-                                //Log.d("ble", it.getStringValue(0))
-                                done = true
-                                it.getStringValue(0)?.let {
-                                    if (it.endsWith(":ER:crc")) {
-                                        done = false
-                                    }
-                                }
-                            }
+                    //val result = write(CHARACTERISTIC_FOTA_STRING, chunk)
+                    //delay(2)
+                    val result1 = writeAndResponse(CHARACTERISTIC_FOTA_STRING, chunk)
+                    bleConnection?.findCharacteristic(CHARACTERISTIC_FOTA_STRING)?.let {
+                        if (it?.getStringValue(0).isNotEmpty()) {
+                            var str = it.getStringValue(0)
+                            Log.d("ble", "$count $str")
                         }
-                    } while (!done)
-                    //val result1 = writeAndResponse(CHARACTERISTIC_FOTA_STRING, chunk)
+                    }
                     current += chunk.size
                     otaCurrentObserver.postValue(current)
                     ++count
                 }
-                write(CHARACTERISTIC_FOTA_CMD_STRING, "FOTA:End".toByteArray())
+                writeAndResponse(CHARACTERISTIC_FOTA_CMD_STRING, "FOTA:End".toByteArray())
             }
             catch (e: Exception) {
                 outputLogLine("Exception: ${e.message}")
