@@ -7,6 +7,7 @@ import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.MutableLiveData
 import kotlinx.coroutines.*
@@ -59,8 +60,10 @@ class BleRepository : CoroutineScope  {
 
     //
     val reportArray = MutableLiveData<ByteArray>()
-
     val version = MutableLiveData<String>()
+
+    val relayResponse = MutableLiveData<String>()
+    val fotaCmdResponse = MutableLiveData<String>()
 
     private var otaList = mutableListOf<ByteArray>()
     private var otaLength = 0
@@ -134,7 +137,7 @@ class BleRepository : CoroutineScope  {
             // get scanned device
             val device = result.device
             // filter out devices with name starting with 'CMI-M100'
-            if (device.name == null || !device.name.startsWith("CMI-M100")) {
+            if (device.name == null /*|| !device.name.startsWith("CMI-M100")*/) {
                 return
             }
             // get scanned device MAC address
@@ -210,25 +213,8 @@ class BleRepository : CoroutineScope  {
         }
     }
 
-    fun writeData(rxByteArray: ByteArray) {
-        launch {
-            try {
-                val connection = bleConnection
-                connection?.let {
-                    connection.findCharacteristic(CHARACTERISTIC_RX_STRING)?.let { characteristic ->
-                        characteristic.value = rxByteArray
-                        connection.write(characteristic)
-                    }
-                }
-            }
-            catch (e: Exception) {
-                outputLogLine("Exception: ${e.message}")
-            }
-        }
-    }
-
-    fun read(uuidString: String) {
-        launch {
+    suspend fun read(uuidString: String) {
+        //launch {
             try {
                 val connection = bleConnection
                 connection?.let {
@@ -244,16 +230,95 @@ class BleRepository : CoroutineScope  {
             catch (e: Exception) {
                 outputLogLine("Exception: ${e.message}")
             }
+        //}
+    }
+
+    fun launchRead(uuidString: String) {
+        launch {
+            read(uuidString)
+        }
+    }
+
+    suspend fun write(uuidString: String, data: ByteArray) {
+        try {
+            val connection = bleConnection
+            connection?.let {
+                connection.findCharacteristic(uuidString)?.let { characteristic ->
+                    characteristic.value = data
+                    connection.write(characteristic)
+                }
+            }
+        }
+        catch (e: Exception) {
+            outputLogLine("Exception: ${e.message}")
+        }
+    }
+
+    suspend fun writeAndResponse(uuidString: String, data: ByteArray) {
+        try {
+            val connection = bleConnection
+            connection?.let {
+                connection.findCharacteristic(uuidString)?.let { characteristic ->
+                    characteristic.value = data
+                    connection.write(characteristic)
+                    /*when (uuidString) {
+                        CHARACTERISTIC_RX_STRING -> relayResponse.postValue(characteristic.getStringValue(0))
+                        CHARACTERISTIC_FOTA_CMD_STRING -> fotaCmdResponse.postValue(characteristic.getStringValue(0))
+                    }*/
+                }
+            }
+        }
+        catch (e: Exception) {
+            outputLogLine("Exception: ${e.message}")
+        }
+    }
+
+    fun launchWrite(uuidString: String, data: ByteArray) {
+        launch {
+            write(uuidString, data)
+        }
+    }
+    fun launchWriteAndResponse(uuidString: String, data: ByteArray) {
+        launch {
+            writeAndResponse(uuidString, data)
         }
     }
 
     fun startOTA(list: MutableList<ByteArray>, length: Int) {
-        otaList = list
-        otaLength = length
-        otaCurrent = 0
-        otaLengthObserver.postValue(otaLength)
-        otaCurrentObserver.postValue(otaCurrent)
-        writeOTA()
+        launch {
+            try {
+                otaLengthObserver.postValue(length)
+                val result =
+                    writeAndResponse(CHARACTERISTIC_FOTA_CMD_STRING, "FOTA:Begin".toByteArray())
+                var current = 0
+                otaCurrentObserver.postValue(current)
+                var count = 0
+                for (chunk in list) {
+                    var done = true; do {
+                        val result1 = write(CHARACTERISTIC_FOTA_STRING, chunk)
+                        bleConnection?.let {
+                            it.findCharacteristic(CHARACTERISTIC_FOTA_STRING)?.let {
+                                //Log.d("ble", it.getStringValue(0))
+                                done = true
+                                it.getStringValue(0)?.let {
+                                    if (it.endsWith(":ER:crc")) {
+                                        done = false
+                                    }
+                                }
+                            }
+                        }
+                    } while (!done)
+                    //val result1 = writeAndResponse(CHARACTERISTIC_FOTA_STRING, chunk)
+                    current += chunk.size
+                    otaCurrentObserver.postValue(current)
+                    ++count
+                }
+                write(CHARACTERISTIC_FOTA_CMD_STRING, "FOTA:End".toByteArray())
+            }
+            catch (e: Exception) {
+                outputLogLine("Exception: ${e.message}")
+            }
+        }
     }
 
     private fun writeOTA() {

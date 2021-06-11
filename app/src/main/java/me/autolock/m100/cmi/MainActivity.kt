@@ -192,7 +192,7 @@ class MainActivity : AppCompatActivity() {
         viewModel.otaCurrent.observe(this, {
             dialog?.setCurrent(it)
             if (viewModel.otaLength.value != 0 && viewModel.otaLength.value == viewModel.otaCurrent.value) {
-                dialog?.dismiss()
+                //dialog?.dismiss()
             }
         })
     }

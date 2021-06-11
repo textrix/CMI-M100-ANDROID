@@ -3,8 +3,11 @@ package me.autolock.m100.cmi
 import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.databinding.ObservableBoolean
 import androidx.lifecycle.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.nio.charset.Charset
@@ -54,13 +57,13 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
     }
 
     fun relayOnButtonOnClick(num: Int) {
-        var text = "O$num"
-        bleRepository.writeData(text.toByteArray(Charset.defaultCharset()))
+        val text = "O$num"
+        bleRepository.launchWriteAndResponse(CHARACTERISTIC_RX_STRING, text.toByteArray(Charset.defaultCharset()))
     }
 
     fun relayOffButtonOnClick(num: Int) {
-        var text = "F$num"
-        bleRepository.writeData(text.toByteArray(Charset.defaultCharset()))
+        val text = "F$num"
+        bleRepository.launchWriteAndResponse(CHARACTERISTIC_RX_STRING, text.toByteArray(Charset.defaultCharset()))
     }
 
     fun readSwitchOnCheckedChanged(checked: Boolean) {
@@ -68,7 +71,7 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
             readTimer = Timer("read", false)
             readTimer?.schedule(0, 500) {
                 if (connected.get()) {
-                    bleRepository.read(CHARACTERISTIC_REPORT_STRING)
+                    bleRepository.launchRead(CHARACTERISTIC_REPORT_STRING)
                 }
             }
         }
@@ -78,7 +81,7 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
     }
 
     fun versionButtonOnClick() {
-        bleRepository.read(CHARACTERISTIC_VERSION_STRING)
+        bleRepository.launchRead(CHARACTERISTIC_VERSION_STRING)
     }
 
     fun startOTA(list: MutableList<ByteArray>, length: Int) {
@@ -95,11 +98,17 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
                     var remain = length
                     var current = 0
                     while (true) {
-                        val buff = ByteArray(if (512 < length) 512 else remain)
-                        val size = input.read(buff)
+                        val buff = ByteArray(512 + 2)
+                        val size = input.read(buff, 0, 512)
                         if (size <= 0)
                             break
-                        list.add(buff)
+                        val crc = crc16(buff.copyOf(size))
+                        //Log.d("ble", "${crc.toString(16)}")
+                        //Log.d("ble", "${(crc and 0xFFU).toByte()}")
+                        //Log.d("ble", "${((crc shr 8) and 0xFFU).toByte()}")
+                        buff[size] = (crc and 0xFFU).toByte()
+                        buff[size + 1] = ((crc shr 8) and 0xFFU).toByte()
+                        list.add(buff.copyOf(size + 2))
                         current += size
                         remain -= size
                     }
