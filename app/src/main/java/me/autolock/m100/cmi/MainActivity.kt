@@ -3,19 +3,15 @@ package me.autolock.m100.cmi
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
-import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.provider.DocumentsContract
-import android.provider.MediaStore
 import android.view.View
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,17 +20,8 @@ import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers.Main
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.yield
 import me.autolock.m100.cmi.databinding.ActivityMainBinding
-import org.koin.android.ext.android.bind
 import org.koin.androidx.viewmodel.ext.android.viewModel
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.IOException
 
 // used to identify adding bluetooth names
 const val REQUEST_ENABLE_BT = 1
@@ -57,19 +44,19 @@ fun requestEnableBLE() {
 class MainActivity : AppCompatActivity() {
     private val viewModel by viewModel<MainViewModel>()
     private var logLine = 0
-    private var adapter: BleListAdapter? = null
-    private var dialog: FotaDialog? = null
+    private val adapter: BleListAdapter by lazy { BleListAdapter() }
+    private val dialog: FotaDialog by lazy { FotaDialog(this) }
+    private var _testMode = false
 
     private val fotaLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.let { intent ->
                 intent.data?.let { uri ->
-                    dialog = FotaDialog(this)
-                    dialog?.setTitle("Loading BIN File...")
-                    dialog?.show()
+                    dialog.setTitle("Loading BIN File...")
+                    dialog.show()
                     val (list, length) = viewModel.loadBinFile(this, uri)
-                    dialog?.setTitle("Upload BIN File...")
-                    viewModel.startOTA(list, length)
+                    dialog.setTitle("Upload BIN File...")
+                    viewModel.startOTA(list, length, _testMode)
                 }
             }
         }
@@ -108,9 +95,8 @@ class MainActivity : AppCompatActivity() {
         binding.bleList.layoutManager = layoutManager
 
 
-        adapter = BleListAdapter()
         binding.bleList.adapter = adapter
-        adapter?.setItemClickListener(object : BleListAdapter.ItemClickListener {
+        adapter.setItemClickListener(object : BleListAdapter.ItemClickListener {
             override fun onClick(view: View, device: BluetoothDevice?) {
                 if (device != null) {
                     viewModel.connectDevice(device)
@@ -123,27 +109,26 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.hide()
         binding.statusText.text = APP_VERSION
 
+        val launchIntentOTA: (testMode: Boolean) -> Unit = { testMode ->
+            val readPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+            if (readPermission == PackageManager.PERMISSION_DENIED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), REQ_READ_EXTERNAL_STORAGE)
+            }
+            else {
+                _testMode = testMode
+                binding.readSwitch.isChecked = false
+                val intent = Intent().setType("application/octet-stream").setAction(Intent.ACTION_GET_CONTENT)
+                fotaLauncher.launch(intent)
+            }
+        }
+
         binding.fotaButton.setOnClickListener {
             val builder = AlertDialog.Builder(this)
             builder.setTitle("FOTA")
             builder.setMessage("Do you want to upgrade F/W?")
-            builder.setPositiveButton("OK") { dialog, id ->
-                var readPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
-                if (readPermission == PackageManager.PERMISSION_DENIED) {
-                    ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), REQ_READ_EXTERNAL_STORAGE)
-                }
-                else {
-                    binding.readSwitch.isChecked = false
-
-                    val intent = Intent()
-                        .setType("application/octet-stream")
-                        .setAction(Intent.ACTION_GET_CONTENT)
-                    fotaLauncher.launch(intent)
-                }
-            }
-            builder.setNegativeButton("Cancel") { dialog, id ->
-                // do nothing
-            }
+            builder.setPositiveButton("OK") { _, _ -> launchIntentOTA(false) }
+            builder.setNegativeButton("Cancel") { _, _ -> /* do nothing */ }
+            builder.setNeutralButton("Test") { _, _ -> launchIntentOTA(true) }
             builder.show()
         }
     }
@@ -173,7 +158,7 @@ class MainActivity : AppCompatActivity() {
             viewModel.connected.set(it)
         })
         viewModel.listUpdate.observe(this, {
-            adapter?.setItem(it)
+            adapter.setItem(it)
             /*it.getContentIfNotHandled()?.let { scanResults ->
                 adapter?.setItem(scanResults)
             }*/

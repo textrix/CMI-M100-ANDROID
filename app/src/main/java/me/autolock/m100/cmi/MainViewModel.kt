@@ -53,7 +53,7 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
     }
 
     fun connectDevice(bluetoothDevice: BluetoothDevice) {
-        bleRepository.connectDevice(bluetoothDevice)
+        bleRepository.connectDevice(CmiApplication.applicationContext(), bluetoothDevice)
     }
 
     fun relayOnButtonOnClick(num: Int) {
@@ -84,8 +84,8 @@ class MainViewModel(private val bleRepository: BleRepository) : ViewModel() {
         bleRepository.launchRead(CHARACTERISTIC_VERSION_STRING)
     }
 
-    fun startOTA(list: MutableList<ByteArray>, length: Int) {
-        bleRepository.startOTA(list, length)
+    fun startOTA(list: MutableList<ByteArray>, length: Int, testMode: Boolean) {
+        bleRepository.startOTA(list, length, testMode)
     }
 
     fun loadBinFile(context: Context, uri: Uri): Pair<MutableList<ByteArray>, Int> {

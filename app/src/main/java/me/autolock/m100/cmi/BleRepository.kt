@@ -75,7 +75,6 @@ class BleRepository : CoroutineScope  {
     private val mtuChannel = Channel<Int>()
 
     fun startScan() {
-
         // check ble adapter and ble enabled
         if (bleAdapter == null || !bleAdapter?.isEnabled!!) {
             outputLogLine("Scanning Failed: ble not enabled")
@@ -159,7 +158,7 @@ class BleRepository : CoroutineScope  {
     /**
      * Connect to the ble device
      */
-    fun connectDevice(device: BluetoothDevice) {
+    fun connectDevice(appContext: Context, device: BluetoothDevice) {
         launch {
             // update the status
             outputLogLine("Connecting to ${device?.address}")
@@ -167,37 +166,37 @@ class BleRepository : CoroutineScope  {
             val timeout = 5_000L
 
             try {
-                val connection = BleConnection(device)
+                val connection = BleConnection(appContext, device, timeout)
 
-                connection.connect(timeout = timeout)
+                with(connection) {
+                    connect(timeout = timeout)
+                    requestMTU(mtu = 517, timeout = timeout)
+                    discoverServices(timeout = timeout)
 
-                connection.requestMTU(mtu = 517, timeout = timeout)
+                    findCharacteristic(CHARACTERISTIC_RX_STRING)?.run {
+                        setCharacteristicNotification(this, true)
+                        setCharacteristicNotificationOnRemote(this, true, timeout = timeout)
+                    }
 
-                connection.discoverServices(timeout = timeout)
+                    findCharacteristic(CHARACTERISTIC_FOTA_STRING)?.run {
+                        setCharacteristicNotification(this, true)
+                        setCharacteristicNotificationOnRemote(this, true, timeout = timeout)
+                    }
 
-                connection.findCharacteristic(CHARACTERISTIC_RX_STRING)?.let { rx ->
-                    connection.setCharacteristicNotification(rx, true)
-                    connection.setCharacteristicNotificationOnRemote(rx, true, timeout = timeout)
+                    findCharacteristic(CHARACTERISTIC_FOTA_CMD_STRING)?.run {
+                        setCharacteristicNotification(this, true)
+                        setCharacteristicNotificationOnRemote(this, true, timeout = timeout)
+                    }
+
+                    findCharacteristic(CHARACTERISTIC_VERSION_STRING)?.run {
+                        read(this)
+                        val str = getStringValue(0)
+                        outputLogLine(str)
+                    }
+
+                    bleConnection = this
+                    connected.postValue(true)
                 }
-
-                connection.findCharacteristic(CHARACTERISTIC_FOTA_STRING)?.let { ota ->
-                    connection.setCharacteristicNotification(ota, true)
-                    connection.setCharacteristicNotificationOnRemote(ota, true, timeout = timeout)
-                }
-
-                connection.findCharacteristic(CHARACTERISTIC_FOTA_CMD_STRING)?.let { ota_cmd ->
-                    connection.setCharacteristicNotification(ota_cmd, true)
-                    connection.setCharacteristicNotificationOnRemote(ota_cmd, true, timeout = timeout)
-                }
-
-                connection.findCharacteristic(CHARACTERISTIC_VERSION_STRING)?.let { ver ->
-                    connection.read(ver)
-                    val str = ver.getStringValue(0)
-                    outputLogLine(str)
-                }
-
-                bleConnection = connection
-                connected.postValue(true)
             }
             catch (e: Exception) {
                 outputLogLine("Exception: ${e.message}")
@@ -260,26 +259,20 @@ class BleRepository : CoroutineScope  {
         }
     }
 
-    suspend fun writeAndResponse(uuidString: String, data: ByteArray) {
-        try {
-            val connection = bleConnection
-            connection?.let {
-                connection.findCharacteristic(uuidString)?.let { characteristic ->
-                    characteristic.value = data
-                    connection.writeAndResponse(characteristic)
-                    //Log.d("ble", "write")
-                    //connection.changed()
-                    //Log.d("ble", "changed")
-                    /*when (uuidString) {
-                        CHARACTERISTIC_RX_STRING -> relayResponse.postValue(characteristic.getStringValue(0))
-                        CHARACTERISTIC_FOTA_CMD_STRING -> fotaCmdResponse.postValue(characteristic.getStringValue(0))
-                    }*/
-                }
+    suspend fun writeAndResponse(uuidString: String, data: ByteArray, timeout: Long? = null): String {
+        //val connection = bleConnection
+        bleConnection?.let { connection ->
+            connection.findCharacteristic(uuidString)?.let { cx ->
+                cx.value = data
+                connection.writeAndResponse(cx, timeout)
+                return cx.getStringValue(0)
             }
         }
-        catch (e: Exception) {
-            outputLogLine("Exception: ${e.message}")
-        }
+        return ""
+    }
+
+    suspend fun writeAndResponse(uuidString: String, value: String, timeout: Long? = null): String {
+        return writeAndResponse(uuidString, value.toByteArray(), timeout)
     }
 
     fun launchWrite(uuidString: String, data: ByteArray) {
@@ -293,29 +286,28 @@ class BleRepository : CoroutineScope  {
         }
     }
 
-    fun startOTA(list: MutableList<ByteArray>, length: Int) {
+    fun startOTA(list: MutableList<ByteArray>, length: Int, testMode: Boolean) {
         launch {
             try {
                 otaLengthObserver.postValue(length)
-                val result = writeAndResponse(CHARACTERISTIC_FOTA_CMD_STRING, "FOTA:Begin".toByteArray())
+                var cmd = "FOTA:Begin"
+                if (testMode) {
+                    cmd += ":Test"
+                    list.removeRange(list.size / 100, list.size)
+                }
+                val result = writeAndResponse(CHARACTERISTIC_FOTA_CMD_STRING, cmd)
+                Log.d("ble", result )
                 var current = 0
                 otaCurrentObserver.postValue(current)
                 var count = 0
                 for (chunk in list) {
-                    //val result = write(CHARACTERISTIC_FOTA_STRING, chunk)
-                    //delay(2)
-                    val result1 = writeAndResponse(CHARACTERISTIC_FOTA_STRING, chunk)
-                    bleConnection?.findCharacteristic(CHARACTERISTIC_FOTA_STRING)?.let {
-                        if (it?.getStringValue(0).isNotEmpty()) {
-                            var str = it.getStringValue(0)
-                            Log.d("ble", "$count $str")
-                        }
-                    }
+                    val result = writeAndResponse(CHARACTERISTIC_FOTA_STRING, chunk)
+                    Log.d("ble", "$count $result")
                     current += chunk.size
                     otaCurrentObserver.postValue(current)
                     ++count
                 }
-                writeAndResponse(CHARACTERISTIC_FOTA_CMD_STRING, "FOTA:End".toByteArray())
+                writeAndResponse(CHARACTERISTIC_FOTA_CMD_STRING, "FOTA:End")
             }
             catch (e: Exception) {
                 outputLogLine("Exception: ${e.message}")
